@@ -1,0 +1,873 @@
+cells:
+  - kind: 2
+    value: "INSERT INTO App_User (\r
+
+      \    user_id,\r
+
+      \    first_name,\r
+
+      \    last_name,\r
+
+      \    email,\r
+
+      \    phone,\r
+
+      \    password_hash,\r
+
+      \    role,\r
+
+      \    status\r
+
+      )\r
+
+      VALUES (\r
+
+      \    user_seq.NEXTVAL,\r
+
+      \    'Rahul',\r
+
+      \    'Sharma',\r
+
+      \    'rahul.sharma@gmail.com',\r
+
+      \    '9876543210',\r
+
+      \    'hash_rahul_123',\r
+
+      \    'OWNER',\r
+
+      \    'ACTIVE'\r
+
+      );\r
+
+      \r
+
+      INSERT INTO App_User (\r
+
+      \    user_id,\r
+
+      \    first_name,\r
+
+      \    last_name,\r
+
+      \    email,\r
+
+      \    phone,\r
+
+      \    password_hash,\r
+
+      \    role,\r
+
+      \    status\r
+
+      )\r
+
+      VALUES (\r
+
+      \    user_seq.NEXTVAL,\r
+
+      \    'Priya',\r
+
+      \    'Nair',\r
+
+      \    'priya.nair@gmail.com',\r
+
+      \    '9876543211',\r
+
+      \    'hash_priya_123',\r
+
+      \    'CUSTOMER',\r
+
+      \    'ACTIVE'\r
+
+      );\r
+
+      INSERT INTO App_User (\r
+
+      \    user_id,\r
+
+      \    first_name,\r
+
+      \    last_name,\r
+
+      \    email,\r
+
+      \    phone,\r
+
+      \    password_hash,\r
+
+      \    role,\r
+
+      \    status\r
+
+      )\r
+
+      VALUES (\r
+
+      \    user_seq.NEXTVAL,\r
+
+      \    'Arjun',\r
+
+      \    'Kumar',\r
+
+      \    'arjun.kumar@gmail.com',\r
+
+      \    '9876543212',\r
+
+      \    'hash_arjun_123',\r
+
+      \    'OWNER',\r
+
+      \    'ACTIVE'\r
+
+      );\r
+
+      \r
+
+      SELECT * FROM App_User;"
+    languageId: oracle-sql
+  - kind: 2
+    value: "INSERT INTO Destination (\r
+
+      \    destination_id,\r
+
+      \    name,\r
+
+      \    city,\r
+
+      \    state,\r
+
+      \    country,\r
+
+      \    description,\r
+
+      \    latitude,\r
+
+      \    longitude,\r
+
+      \    status\r
+
+      )\r
+
+      VALUES (\r
+
+      \    destination_seq.NEXTVAL,\r
+
+      \    'Bangalore Palace',\r
+
+      \    'Bengaluru',\r
+
+      \    'Karnataka',\r
+
+      \    'India',\r
+
+      \    'Historic palace and tourist attraction in Bengaluru.',\r
+
+      \    12.9988,\r
+
+      \    77.5921,\r
+
+      \    'ACTIVE'\r
+
+      );\r
+
+      \r
+
+      INSERT INTO Destination (\r
+
+      \    destination_id,\r
+
+      \    name,\r
+
+      \    city,\r
+
+      \    state,\r
+
+      \    country,\r
+
+      \    description,\r
+
+      \    latitude,\r
+
+      \    longitude,\r
+
+      \    status\r
+
+      )\r
+
+      VALUES (\r
+
+      \    destination_seq.NEXTVAL,\r
+
+      \    'Mysore Palace',\r
+
+      \    'Mysuru',\r
+
+      \    'Karnataka',\r
+
+      \    'India',\r
+
+      \    'Historic royal palace and major tourist attraction.',\r
+
+      \    12.3052,\r
+
+      \    76.6552,\r
+
+      \    'ACTIVE'\r
+
+      );\r
+
+      \r
+
+      INSERT INTO Destination (\r
+
+      \    destination_id,\r
+
+      \    name,\r
+
+      \    city,\r
+
+      \    state,\r
+
+      \    country,\r
+
+      \    description,\r
+
+      \    latitude,\r
+
+      \    longitude,\r
+
+      \    status\r
+
+      )\r
+
+      VALUES (\r
+
+      \    destination_seq.NEXTVAL,\r
+
+      \    'Goa Beach',\r
+
+      \    'Panaji',\r
+
+      \    'Goa',\r
+
+      \    'India',\r
+
+      \    'Popular coastal tourist destination.',\r
+
+      \    15.4909,\r
+
+      \    73.8278,\r
+
+      \    'ACTIVE'\r
+
+      );\r
+
+      \r
+
+      \r
+
+      SELECT * FROM Destination;"
+    languageId: oracle-sql
+  - kind: 2
+    value: "INSERT INTO Hotel (\r
+
+      \    hotel_id,\r
+
+      \    owner_id,\r
+
+      \    destination_id,\r
+
+      \    name,\r
+
+      \    description,\r
+
+      \    address,\r
+
+      \    contact_number,\r
+
+      \    email,\r
+
+      \    star_rating,\r
+
+      \    status\r
+
+      )\r
+
+      VALUES (\r
+
+      \    hotel_seq.NEXTVAL,\r
+
+      \    1,\r
+
+      \    1,\r
+
+      \    'Grand Palace Hotel',\r
+
+      \    'Comfortable hotel near Bangalore Palace.',\r
+
+      \    'Palace Road, Bengaluru',\r
+
+      \    '9876500001',\r
+
+      \    'grandpalace@gmail.com',\r
+
+      \    4.5,\r
+
+      \    'ACTIVE'\r
+
+      );\r
+
+      \r
+
+      INSERT INTO Hotel (\r
+
+      \    hotel_id,\r
+
+      \    owner_id,\r
+
+      \    destination_id,\r
+
+      \    name,\r
+
+      \    description,\r
+
+      \    address,\r
+
+      \    contact_number,\r
+
+      \    email,\r
+
+      \    star_rating,\r
+
+      \    status\r
+
+      )\r
+
+      VALUES (\r
+
+      \    hotel_seq.NEXTVAL,\r
+
+      \    3,\r
+
+      \    2,\r
+
+      \    'Royal Mysore Hotel',\r
+
+      \    'Hotel located near Mysore Palace.',\r
+
+      \    'Sayyaji Rao Road, Mysuru',\r
+
+      \    '9876500002',\r
+
+      \    'royalmysore@gmail.com',\r
+
+      \    4.0,\r
+
+      \    'ACTIVE'\r
+
+      );\r
+
+      \r
+
+      INSERT INTO Hotel (\r
+
+      \    hotel_id,\r
+
+      \    owner_id,\r
+
+      \    destination_id,\r
+
+      \    name,\r
+
+      \    description,\r
+
+      \    address,\r
+
+      \    contact_number,\r
+
+      \    email,\r
+
+      \    star_rating,\r
+
+      \    status\r
+
+      )\r
+
+      VALUES (\r
+
+      \    hotel_seq.NEXTVAL,\r
+
+      \    1,\r
+
+      \    3,\r
+
+      \    'Goa Paradise Resort',\r
+
+      \    'Beach resort in Goa.',\r
+
+      \    'Calangute, Goa',\r
+
+      \    '9876500003',\r
+
+      \    'goaparadise@gmail.com',\r
+
+      \    5.0,\r
+
+      \    'ACTIVE'\r
+
+      );\r
+
+      \r
+
+      SELECT * FROM Hotel;"
+    languageId: oracle-sql
+  - kind: 2
+    value: "INSERT INTO Room (\r
+
+      \    room_id,\r
+
+      \    hotel_id,\r
+
+      \    room_number,\r
+
+      \    room_type,\r
+
+      \    capacity,\r
+
+      \    price_per_night,\r
+
+      \    status\r
+
+      )\r
+
+      VALUES (\r
+
+      \    room_seq.NEXTVAL,\r
+
+      \    1,\r
+
+      \    '101',\r
+
+      \    'DELUXE',\r
+
+      \    2,\r
+
+      \    3500,\r
+
+      \    'AVAILABLE'\r
+
+      );\r
+
+      \r
+
+      INSERT INTO Room (\r
+
+      \    room_id,\r
+
+      \    hotel_id,\r
+
+      \    room_number,\r
+
+      \    room_type,\r
+
+      \    capacity,\r
+
+      \    price_per_night,\r
+
+      \    status\r
+
+      )\r
+
+      VALUES (\r
+
+      \    room_seq.NEXTVAL,\r
+
+      \    1,\r
+
+      \    '102',\r
+
+      \    'SUITE',\r
+
+      \    4,\r
+
+      \    6000,\r
+
+      \    'AVAILABLE'\r
+
+      );\r
+
+      \r
+
+      INSERT INTO Room (\r
+
+      \    room_id,\r
+
+      \    hotel_id,\r
+
+      \    room_number,\r
+
+      \    room_type,\r
+
+      \    capacity,\r
+
+      \    price_per_night,\r
+
+      \    status\r
+
+      )\r
+
+      VALUES (\r
+
+      \    room_seq.NEXTVAL,\r
+
+      \    2,\r
+
+      \    '201',\r
+
+      \    'DELUXE',\r
+
+      \    2,\r
+
+      \    3000,\r
+
+      \    'AVAILABLE'\r
+
+      );\r
+
+      \r
+
+      \r
+
+      INSERT INTO Room (\r
+
+      \    room_id,\r
+
+      \    hotel_id,\r
+
+      \    room_number,\r
+
+      \    room_type,\r
+
+      \    capacity,\r
+
+      \    price_per_night,\r
+
+      \    status\r
+
+      )\r
+
+      VALUES (\r
+
+      \    room_seq.NEXTVAL,\r
+
+      \    3,\r
+
+      \    '301',\r
+
+      \    'SUITE',\r
+
+      \    4,\r
+
+      \    7500,\r
+
+      \    'AVAILABLE'\r
+
+      );\r
+
+      \r
+
+      select * from Room;"
+    languageId: oracle-sql
+  - kind: 2
+    value: "INSERT INTO Activity (\r
+
+      \    activity_id,\r
+
+      \    destination_id,\r
+
+      \    name,\r
+
+      \    description,\r
+
+      \    category,\r
+
+      \    duration_hours,\r
+
+      \    price,\r
+
+      \    capacity,\r
+
+      \    status\r
+
+      )\r
+
+      VALUES (\r
+
+      \    activity_seq.NEXTVAL,\r
+
+      \    1,\r
+
+      \    'Bangalore Palace Guided Tour',\r
+
+      \    'Guided tour of Bangalore Palace.',\r
+
+      \    'CULTURAL',\r
+
+      \    2,\r
+
+      \    500,\r
+
+      \    30,\r
+
+      \    'ACTIVE'\r
+
+      );\r
+
+      \r
+
+      INSERT INTO Activity (\r
+
+      \    activity_id,\r
+
+      \    destination_id,\r
+
+      \    name,\r
+
+      \    description,\r
+
+      \    category,\r
+
+      \    duration_hours,\r
+
+      \    price,\r
+
+      \    capacity,\r
+
+      \    status\r
+
+      )\r
+
+      VALUES (\r
+
+      \    activity_seq.NEXTVAL,\r
+
+      \    2,\r
+
+      \    'Mysore Palace Tour',\r
+
+      \    'Guided historical tour of Mysore Palace.',\r
+
+      \    'CULTURAL',\r
+
+      \    3,\r
+
+      \    750,\r
+
+      \    40,\r
+
+      \    'ACTIVE'\r
+
+      );\r
+
+      \r
+
+      INSERT INTO Activity (\r
+
+      \    activity_id,\r
+
+      \    destination_id,\r
+
+      \    name,\r
+
+      \    description,\r
+
+      \    category,\r
+
+      \    duration_hours,\r
+
+      \    price,\r
+
+      \    capacity,\r
+
+      \    status\r
+
+      )\r
+
+      VALUES (\r
+
+      \    activity_seq.NEXTVAL,\r
+
+      \    3,\r
+
+      \    'Beach Water Sports',\r
+
+      \    'Water sports activities at Goa beach.',\r
+
+      \    'ADVENTURE',\r
+
+      \    2,\r
+
+      \    1200,\r
+
+      \    20,\r
+
+      \    'ACTIVE'\r
+
+      );\r
+
+      \r
+
+      SELECT * FROM Activity;"
+    languageId: oracle-sql
+  - kind: 2
+    value: "INSERT INTO Travel_Segment (\r
+
+      \    travel_segment_id,\r
+
+      \    origin_destination_id,\r
+
+      \    destination_destination_id,\r
+
+      \    transport_type,\r
+
+      \    operator_name,\r
+
+      \    departure_time,\r
+
+      \    arrival_time,\r
+
+      \    price,\r
+
+      \    capacity,\r
+
+      \    status\r
+
+      )\r
+
+      VALUES (\r
+
+      \    travel_segment_seq.NEXTVAL,\r
+
+      \    1,\r
+
+      \    2,\r
+
+      \    'BUS',\r
+
+      \    'KSRTC',\r
+
+      \    TIMESTAMP '2026-10-01 08:00:00',\r
+
+      \    TIMESTAMP '2026-10-01 11:00:00',\r
+
+      \    500,\r
+
+      \    40,\r
+
+      \    'SCHEDULED'\r
+
+      );\r
+
+      \r
+
+      INSERT INTO Travel_Segment (\r
+
+      \    travel_segment_id,\r
+
+      \    origin_destination_id,\r
+
+      \    destination_destination_id,\r
+
+      \    transport_type,\r
+
+      \    operator_name,\r
+
+      \    departure_time,\r
+
+      \    arrival_time,\r
+
+      \    price,\r
+
+      \    capacity,\r
+
+      \    status\r
+
+      )\r
+
+      VALUES (\r
+
+      \    travel_segment_seq.NEXTVAL,\r
+
+      \    2,\r
+
+      \    1,\r
+
+      \    'BUS',\r
+
+      \    'KSRTC',\r
+
+      \    TIMESTAMP '2026-10-02 17:00:00',\r
+
+      \    TIMESTAMP '2026-10-02 20:00:00',\r
+
+      \    500,\r
+
+      \    40,\r
+
+      \    'SCHEDULED'\r
+
+      );\r
+
+      \r
+
+      INSERT INTO Travel_Segment (\r
+
+      \    travel_segment_id,\r
+
+      \    origin_destination_id,\r
+
+      \    destination_destination_id,\r
+
+      \    transport_type,\r
+
+      \    operator_name,\r
+
+      \    departure_time,\r
+
+      \    arrival_time,\r
+
+      \    price,\r
+
+      \    capacity,\r
+
+      \    status\r
+
+      )\r
+
+      VALUES (\r
+
+      \    travel_segment_seq.NEXTVAL,\r
+
+      \    1,\r
+
+      \    3,\r
+
+      \    'BUS',\r
+
+      \    'VRL Travels',\r
+
+      \    TIMESTAMP '2026-10-03 20:00:00',\r
+
+      \    TIMESTAMP '2026-10-04 07:00:00',\r
+
+      \    1200,\r
+
+      \    40,\r
+
+      \    'SCHEDULED'\r
+
+      );\r
+
+      SELECT * FROM Travel_Segment;"
+    languageId: oracle-sql
