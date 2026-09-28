@@ -208,3 +208,190 @@ cells:
 
       );"
     languageId: oracle-sql
+  - kind: 2
+    value: "-- ============================================================\r
+
+      -- PERSON 3 — CHECK CONSTRAINTS (ALTER TABLE style)\r
+
+      -- ============================================================\r
+
+      \r
+
+      -- ---------- Booking ----------\r
+
+      ALTER TABLE Booking\r
+
+      ADD CONSTRAINT chk_booking_type\r
+
+      CHECK (booking_type IN ('HOTEL', 'PACKAGE', 'ACTIVITY', 'TRAVEL'));\r
+
+      \r
+
+      ALTER TABLE Booking\r
+
+      ADD CONSTRAINT chk_booking_status\r
+
+      CHECK (status IN ('PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED'));\r
+
+      \r
+
+      ALTER TABLE Booking\r
+
+      ADD CONSTRAINT chk_booking_amount\r
+
+      CHECK (total_amount >= 0);\r
+
+      \r
+
+      ALTER TABLE Booking\r
+
+      ADD CONSTRAINT chk_booking_cancelled\r
+
+      CHECK (\r
+
+      \    (status = 'CANCELLED' AND cancelled_at IS NOT NULL)\r
+
+      \    OR (status <> 'CANCELLED' AND cancelled_at IS NULL)\r
+
+      );\r
+
+      \r
+
+      -- ---------- Hotel_Booking ----------\r
+
+      ALTER TABLE Hotel_Booking\r
+
+      ADD CONSTRAINT chk_hb_dates\r
+
+      CHECK (check_out_date > check_in_date);\r
+
+      \r
+
+      ALTER TABLE Hotel_Booking\r
+
+      ADD CONSTRAINT chk_hb_guests\r
+
+      CHECK (number_of_guests > 0);\r
+
+      \r
+
+      ALTER TABLE Hotel_Booking\r
+
+      ADD CONSTRAINT chk_hb_guests_max\r
+
+      CHECK (number_of_guests <= 20);\r
+
+      \r
+
+      -- ---------- Package_Booking ----------\r
+
+      ALTER TABLE Package_Booking\r
+
+      ADD CONSTRAINT chk_pb_people\r
+
+      CHECK (number_of_people > 0);\r
+
+      \r
+
+      ALTER TABLE Package_Booking\r
+
+      ADD CONSTRAINT chk_pb_people_max\r
+
+      CHECK (number_of_people <= 50);\r
+
+      \r
+
+      -- ---------- Activity_Booking ----------\r
+
+      ALTER TABLE Activity_Booking\r
+
+      ADD CONSTRAINT chk_ab_people\r
+
+      CHECK (number_of_people > 0);\r
+
+      \r
+
+      ALTER TABLE Activity_Booking\r
+
+      ADD CONSTRAINT chk_ab_people_max\r
+
+      CHECK (number_of_people <= 30);\r
+
+      \r
+
+      -- ---------- Travel_Booking ----------\r
+
+      ALTER TABLE Travel_Booking\r
+
+      ADD CONSTRAINT chk_tb_passengers\r
+
+      CHECK (number_of_passengers > 0);\r
+
+      \r
+
+      ALTER TABLE Travel_Booking\r
+
+      ADD CONSTRAINT chk_tb_passengers_max\r
+
+      CHECK (number_of_passengers <= 10);\r
+
+      \r
+
+      -- ---------- Payment ----------\r
+
+      ALTER TABLE Payment\r
+
+      ADD CONSTRAINT chk_payment_amount\r
+
+      CHECK (amount >= 0);\r
+
+      \r
+
+      ALTER TABLE Payment\r
+
+      ADD CONSTRAINT chk_payment_refund\r
+
+      CHECK (refund_amount >= 0 AND refund_amount <= amount);\r
+
+      \r
+
+      ALTER TABLE Payment\r
+
+      ADD CONSTRAINT chk_payment_method\r
+
+      CHECK (payment_method IN ('CREDIT_CARD', 'DEBIT_CARD', 'UPI',
+      'NET_BANKING', 'WALLET', 'CASH'));\r
+
+      \r
+
+      ALTER TABLE Payment\r
+
+      ADD CONSTRAINT chk_payment_status\r
+
+      CHECK (status IN ('PENDING', 'SUCCESS', 'FAILED', 'REFUNDED'));\r
+
+      \r
+
+      ALTER TABLE Payment\r
+
+      ADD CONSTRAINT chk_payment_refund_status\r
+
+      CHECK (\r
+
+      \    (status = 'REFUNDED' AND refund_amount > 0)\r
+
+      \    OR (status <> 'REFUNDED')\r
+
+      );\r
+
+      \r
+
+      -- ---------- Audit_Log ----------\r
+
+      ALTER TABLE Audit_Log\r
+
+      ADD CONSTRAINT chk_audit_action\r
+
+      CHECK (action IN ('INSERT', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT',
+      'CANCEL', 'PAY'));"
+    languageId: oracle-sql
