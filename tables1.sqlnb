@@ -1,0 +1,209 @@
+cells:
+  - kind: 2
+    value: "CREATE TABLE App_User (\r
+
+      \    user_id NUMBER NOT NULL,\r
+
+      \    first_name VARCHAR2(50) NOT NULL,\r
+
+      \    last_name VARCHAR2(50) NOT NULL,\r
+
+      \    email VARCHAR2(100) NOT NULL,\r
+
+      \    phone VARCHAR2(15),\r
+
+      \    password_hash VARCHAR2(255) NOT NULL,\r
+
+      \    role VARCHAR2(20) NOT NULL,\r
+
+      \    status VARCHAR2(20) NOT NULL,\r
+
+      \    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,\r
+
+      \r
+
+      \    CONSTRAINT pk_app_user PRIMARY KEY (user_id),\r
+
+      \    CONSTRAINT uq_app_user_email UNIQUE (email),\r
+
+      \    CONSTRAINT uq_app_user_phone UNIQUE (phone)\r
+
+      );"
+    languageId: oracle-sql
+  - kind: 2
+    value: "CREATE TABLE Destination (\r
+
+      \    destination_id NUMBER NOT NULL,\r
+
+      \    name VARCHAR2(100) NOT NULL,\r
+
+      \    city VARCHAR2(100) NOT NULL,\r
+
+      \    state VARCHAR2(100),\r
+
+      \    country VARCHAR2(100) NOT NULL,\r
+
+      \    description CLOB,\r
+
+      \    latitude NUMBER(9,6),\r
+
+      \    longitude NUMBER(9,6),\r
+
+      \    status VARCHAR2(20) NOT NULL,\r
+
+      \r
+
+      \    CONSTRAINT pk_destination PRIMARY KEY (destination_id)\r
+
+      );"
+    languageId: oracle-sql
+  - kind: 2
+    value: "CREATE TABLE Hotel (\r
+
+      \    hotel_id NUMBER NOT NULL,\r
+
+      \    owner_id NUMBER NOT NULL,\r
+
+      \    destination_id NUMBER NOT NULL,\r
+
+      \    name VARCHAR2(150) NOT NULL,\r
+
+      \    description CLOB,\r
+
+      \    address VARCHAR2(255) NOT NULL,\r
+
+      \    contact_number VARCHAR2(15),\r
+
+      \    email VARCHAR2(100),\r
+
+      \    star_rating NUMBER(2,1),\r
+
+      \    status VARCHAR2(20) NOT NULL,\r
+
+      \r
+
+      \    CONSTRAINT pk_hotel PRIMARY KEY (hotel_id),\r
+
+      \    CONSTRAINT fk_hotel_owner\r
+
+      \        FOREIGN KEY (owner_id)\r
+
+      \        REFERENCES App_User(user_id),\r
+
+      \    CONSTRAINT fk_hotel_destination\r
+
+      \        FOREIGN KEY (destination_id)\r
+
+      \        REFERENCES Destination(destination_id)\r
+
+      );"
+    languageId: oracle-sql
+  - kind: 2
+    value: "CREATE TABLE Room (\r
+
+      \    room_id NUMBER NOT NULL,\r
+
+      \    hotel_id NUMBER NOT NULL,\r
+
+      \    room_number VARCHAR2(20) NOT NULL,\r
+
+      \    room_type VARCHAR2(30) NOT NULL,\r
+
+      \    capacity NUMBER NOT NULL,\r
+
+      \    price_per_night NUMBER(10,2) NOT NULL,\r
+
+      \    status VARCHAR2(20) NOT NULL,\r
+
+      \r
+
+      \    CONSTRAINT pk_room PRIMARY KEY (room_id),\r
+
+      \    CONSTRAINT fk_room_hotel\r
+
+      \        FOREIGN KEY (hotel_id)\r
+
+      \        REFERENCES Hotel(hotel_id)\r
+
+      );"
+    languageId: oracle-sql
+  - kind: 2
+    value: "CREATE TABLE Activity (\r
+
+      \    activity_id NUMBER NOT NULL,\r
+
+      \    destination_id NUMBER NOT NULL,\r
+
+      \    name VARCHAR2(150) NOT NULL,\r
+
+      \    description CLOB,\r
+
+      \    category VARCHAR2(50) NOT NULL,\r
+
+      \    duration_hours NUMBER(4,2),\r
+
+      \    price NUMBER(10,2) NOT NULL,\r
+
+      \    capacity NUMBER,\r
+
+      \    status VARCHAR2(20) NOT NULL,\r
+
+      \r
+
+      \    CONSTRAINT pk_activity PRIMARY KEY (activity_id),\r
+
+      \    CONSTRAINT fk_activity_destination\r
+
+      \        FOREIGN KEY (destination_id)\r
+
+      \        REFERENCES Destination(destination_id)\r
+
+      );"
+    languageId: oracle-sql
+  - kind: 2
+    value: "CREATE TABLE Travel_Segment (\r
+
+      \    travel_segment_id NUMBER NOT NULL,\r
+
+      \    origin_destination_id NUMBER NOT NULL,\r
+
+      \    destination_destination_id NUMBER NOT NULL,\r
+
+      \    transport_type VARCHAR2(30) NOT NULL,\r
+
+      \    operator_name VARCHAR2(100),\r
+
+      \    departure_time TIMESTAMP NOT NULL,\r
+
+      \    arrival_time TIMESTAMP NOT NULL,\r
+
+      \    price NUMBER(10,2) NOT NULL,\r
+
+      \    capacity NUMBER NOT NULL,\r
+
+      \    status VARCHAR2(20) NOT NULL,\r
+
+      \r
+
+      \    CONSTRAINT pk_travel_segment\r
+
+      \        PRIMARY KEY (travel_segment_id),\r
+
+      \r
+
+      \    CONSTRAINT fk_travel_origin\r
+
+      \        FOREIGN KEY (origin_destination_id)\r
+
+      \        REFERENCES Destination(destination_id),\r
+
+      \r
+
+      \    CONSTRAINT fk_travel_destination\r
+
+      \        FOREIGN KEY (destination_destination_id)\r
+
+      \        REFERENCES Destination(destination_id)\r
+
+      );"
+    languageId: oracle-sql
