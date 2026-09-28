@@ -1,0 +1,210 @@
+cells:
+  - kind: 2
+    value: "CREATE SEQUENCE SEQ_BOOKING   START WITH 1 INCREMENT BY 1 NOCACHE
+      NOCYCLE;\r
+
+      CREATE SEQUENCE SEQ_PAYMENT   START WITH 1 INCREMENT BY 1 NOCACHE
+      NOCYCLE;\r
+
+      CREATE SEQUENCE SEQ_AUDIT_LOG START WITH 1 INCREMENT BY 1 NOCACHE
+      NOCYCLE;"
+    languageId: oracle-sql
+  - kind: 2
+    value: "CREATE TABLE Booking (\r
+
+      \    booking_id      NUMBER          NOT NULL,\r
+
+      \    user_id         NUMBER          NOT NULL,\r
+
+      \    trip_id         NUMBER,\r
+
+      \    booking_type    VARCHAR2(20)    NOT NULL,\r
+
+      \    booking_date    TIMESTAMP       DEFAULT CURRENT_TIMESTAMP NOT NULL,\r
+
+      \    total_amount    NUMBER(10,2)    NOT NULL,\r
+
+      \    status          VARCHAR2(20)    DEFAULT 'PENDING' NOT NULL,\r
+
+      \    cancelled_at    TIMESTAMP,\r
+
+      \    CONSTRAINT PK_BOOKING        PRIMARY KEY (booking_id),\r
+
+      \    CONSTRAINT FK_BOOKING_USER   FOREIGN KEY (user_id) REFERENCES
+      App_User(user_id),\r
+
+      \    CONSTRAINT FK_BOOKING_TRIP   FOREIGN KEY (trip_id) REFERENCES
+      Trip(trip_id),\r
+
+      \    CONSTRAINT CK_BOOKING_TYPE   CHECK (booking_type IN
+      ('HOTEL','PACKAGE','ACTIVITY','TRAVEL')),\r
+
+      \    CONSTRAINT CK_BOOKING_STATUS CHECK (status IN
+      ('PENDING','CONFIRMED','CANCELLED','COMPLETED')),\r
+
+      \    CONSTRAINT CK_BOOKING_AMOUNT CHECK (total_amount >= 0)\r
+
+      );"
+    languageId: oracle-sql
+  - kind: 2
+    value: "CREATE TABLE Hotel_Booking (\r
+
+      \    booking_id          NUMBER  NOT NULL,\r
+
+      \    room_id             NUMBER  NOT NULL,\r
+
+      \    check_in_date       DATE    NOT NULL,\r
+
+      \    check_out_date      DATE    NOT NULL,\r
+
+      \    number_of_guests    NUMBER  NOT NULL,\r
+
+      \    CONSTRAINT PK_HOTEL_BOOKING  PRIMARY KEY (booking_id),\r
+
+      \    CONSTRAINT FK_HB_BOOKING     FOREIGN KEY (booking_id) REFERENCES
+      Booking(booking_id) ON DELETE CASCADE,\r
+
+      \    CONSTRAINT FK_HB_ROOM        FOREIGN KEY (room_id)    REFERENCES
+      Room(room_id),\r
+
+      \    CONSTRAINT CK_HB_DATES       CHECK (check_out_date >
+      check_in_date),\r
+
+      \    CONSTRAINT CK_HB_GUESTS      CHECK (number_of_guests > 0)\r
+
+      );"
+    languageId: oracle-sql
+  - kind: 2
+    value: "CREATE TABLE Package_Booking (\r
+
+      \    booking_id          NUMBER  NOT NULL,\r
+
+      \    package_id          NUMBER  NOT NULL,\r
+
+      \    number_of_people    NUMBER  NOT NULL,\r
+
+      \    travel_date         DATE    NOT NULL,\r
+
+      \    CONSTRAINT PK_PACKAGE_BOOKING  PRIMARY KEY (booking_id),\r
+
+      \    CONSTRAINT FK_PB_BOOKING       FOREIGN KEY (booking_id) REFERENCES
+      Booking(booking_id) ON DELETE CASCADE,\r
+
+      \    CONSTRAINT FK_PB_PACKAGE       FOREIGN KEY (package_id) REFERENCES
+      Tour_Package(package_id),\r
+
+      \    CONSTRAINT CK_PB_PEOPLE        CHECK (number_of_people > 0)\r
+
+      );"
+    languageId: oracle-sql
+  - kind: 2
+    value: "CREATE TABLE Activity_Booking (\r
+
+      \    booking_id          NUMBER  NOT NULL,\r
+
+      \    activity_id         NUMBER  NOT NULL,\r
+
+      \    activity_date       DATE    NOT NULL,\r
+
+      \    number_of_people    NUMBER  NOT NULL,\r
+
+      \    CONSTRAINT PK_ACTIVITY_BOOKING  PRIMARY KEY (booking_id),\r
+
+      \    CONSTRAINT FK_AB_BOOKING        FOREIGN KEY (booking_id)  REFERENCES
+      Booking(booking_id) ON DELETE CASCADE,\r
+
+      \    CONSTRAINT FK_AB_ACTIVITY       FOREIGN KEY (activity_id) REFERENCES
+      Activity(activity_id),\r
+
+      \    CONSTRAINT CK_AB_PEOPLE         CHECK (number_of_people > 0)\r
+
+      );"
+    languageId: oracle-sql
+  - kind: 2
+    value: "CREATE TABLE Travel_Booking (\r
+
+      \    booking_id            NUMBER  NOT NULL,\r
+
+      \    travel_segment_id     NUMBER  NOT NULL,\r
+
+      \    number_of_passengers  NUMBER  NOT NULL,\r
+
+      \    CONSTRAINT PK_TRAVEL_BOOKING  PRIMARY KEY (booking_id),\r
+
+      \    CONSTRAINT FK_TB_BOOKING      FOREIGN KEY
+      (booking_id)        REFERENCES Booking(booking_id) ON DELETE CASCADE,\r
+
+      \    CONSTRAINT FK_TB_SEGMENT      FOREIGN KEY (travel_segment_id)
+      REFERENCES Travel_Segment(travel_segment_id),\r
+
+      \    CONSTRAINT CK_TB_PASSENGERS   CHECK (number_of_passengers > 0)\r
+
+      );"
+    languageId: oracle-sql
+  - kind: 2
+    value: "CREATE TABLE Payment (\r
+
+      \    payment_id             NUMBER         NOT NULL,\r
+
+      \    booking_id             NUMBER         NOT NULL,\r
+
+      \    transaction_reference  VARCHAR2(100)  NOT NULL,\r
+
+      \    amount                 NUMBER(10,2)   NOT NULL,\r
+
+      \    payment_method         VARCHAR2(30)   NOT NULL,\r
+
+      \    payment_date           TIMESTAMP      DEFAULT CURRENT_TIMESTAMP NOT
+      NULL,\r
+
+      \    status                 VARCHAR2(20)   DEFAULT 'PENDING' NOT NULL,\r
+
+      \    refund_amount          NUMBER(10,2)   DEFAULT 0 NOT NULL,\r
+
+      \    CONSTRAINT PK_PAYMENT          PRIMARY KEY (payment_id),\r
+
+      \    CONSTRAINT UQ_PAYMENT_TXNREF   UNIQUE (transaction_reference),\r
+
+      \    CONSTRAINT FK_PAYMENT_BOOKING  FOREIGN KEY (booking_id) REFERENCES
+      Booking(booking_id),\r
+
+      \    CONSTRAINT CK_PAYMENT_AMOUNT   CHECK (amount >= 0),\r
+
+      \    CONSTRAINT CK_PAYMENT_REFUND   CHECK (refund_amount >= 0 AND
+      refund_amount <= amount),\r
+
+      \    CONSTRAINT CK_PAYMENT_METHOD   CHECK (payment_method IN
+      ('CREDIT_CARD','DEBIT_CARD','UPI','NET_BANKING','WALLET','CASH')),\r
+
+      \    CONSTRAINT CK_PAYMENT_STATUS   CHECK (status IN
+      ('PENDING','SUCCESS','FAILED','REFUNDED'))\r
+
+      );"
+    languageId: oracle-sql
+  - kind: 2
+    value: "CREATE TABLE Audit_Log (\r
+
+      \    audit_id          NUMBER         NOT NULL,\r
+
+      \    user_id           NUMBER,\r
+
+      \    action            VARCHAR2(50)   NOT NULL,\r
+
+      \    entity_name       VARCHAR2(50)   NOT NULL,\r
+
+      \    record_id         NUMBER,\r
+
+      \    old_value         CLOB,\r
+
+      \    new_value         CLOB,\r
+
+      \    action_timestamp  TIMESTAMP      DEFAULT CURRENT_TIMESTAMP NOT
+      NULL,\r
+
+      \    CONSTRAINT PK_AUDIT_LOG   PRIMARY KEY (audit_id),\r
+
+      \    CONSTRAINT FK_AUDIT_USER  FOREIGN KEY (user_id) REFERENCES
+      App_User(user_id)\r
+
+      );"
+    languageId: oracle-sql
