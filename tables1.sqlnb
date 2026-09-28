@@ -207,3 +207,130 @@ cells:
 
       );"
     languageId: oracle-sql
+  - kind: 2
+    value: "ALTER TABLE App_User\r
+
+      ADD CONSTRAINT chk_user_role\r
+
+      CHECK (role IN ('CUSTOMER', 'OWNER', 'ADMIN'));\r
+
+      \r
+
+      ALTER TABLE App_User\r
+
+      ADD CONSTRAINT chk_user_status\r
+
+      CHECK (status IN ('ACTIVE', 'INACTIVE'));\r
+
+      \r
+
+      ALTER TABLE Destination\r
+
+      ADD CONSTRAINT chk_destination_status\r
+
+      CHECK (status IN ('ACTIVE', 'INACTIVE'));\r
+
+      \r
+
+      ALTER TABLE Hotel\r
+
+      ADD CONSTRAINT chk_hotel_rating\r
+
+      CHECK (star_rating BETWEEN 1 AND 5);\r
+
+      \r
+
+      ALTER TABLE Hotel\r
+
+      ADD CONSTRAINT chk_hotel_status\r
+
+      CHECK (status IN ('ACTIVE', 'INACTIVE'));\r
+
+      \r
+
+      ALTER TABLE Room\r
+
+      ADD CONSTRAINT chk_room_capacity\r
+
+      CHECK (capacity > 0);\r
+
+      \r
+
+      ALTER TABLE Room\r
+
+      ADD CONSTRAINT chk_room_price\r
+
+      CHECK (price_per_night >= 0);\r
+
+      \r
+
+      ALTER TABLE Room\r
+
+      ADD CONSTRAINT chk_room_status\r
+
+      CHECK (status IN ('AVAILABLE', 'OCCUPIED', 'MAINTENANCE'));\r
+
+      \r
+
+      ALTER TABLE Activity\r
+
+      ADD CONSTRAINT chk_activity_duration\r
+
+      CHECK (duration_hours > 0);\r
+
+      \r
+
+      ALTER TABLE Activity\r
+
+      ADD CONSTRAINT chk_activity_price\r
+
+      CHECK (price >= 0);\r
+
+      \r
+
+      ALTER TABLE Activity\r
+
+      ADD CONSTRAINT chk_activity_capacity\r
+
+      CHECK (capacity > 0);\r
+
+      \r
+
+      ALTER TABLE Activity\r
+
+      ADD CONSTRAINT chk_activity_status\r
+
+      CHECK (status IN ('ACTIVE', 'INACTIVE'));\r
+
+      \r
+
+      ALTER TABLE Travel_Segment\r
+
+      ADD CONSTRAINT chk_travel_price\r
+
+      CHECK (price >= 0);\r
+
+      \r
+
+      ALTER TABLE Travel_Segment\r
+
+      ADD CONSTRAINT chk_travel_capacity\r
+
+      CHECK (capacity > 0);\r
+
+      \r
+
+      ALTER TABLE Travel_Segment\r
+
+      ADD CONSTRAINT chk_travel_dates\r
+
+      CHECK (arrival_time > departure_time);\r
+
+      \r
+
+      ALTER TABLE Travel_Segment\r
+
+      ADD CONSTRAINT chk_travel_status\r
+
+      CHECK (status IN ('SCHEDULED', 'CANCELLED', 'COMPLETED'));"
+    languageId: oracle-sql
