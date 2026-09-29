@@ -1,0 +1,454 @@
+cells:
+  - kind: 2
+    value: "-- ============================================================\r
+
+      -- FUNCTION 1: Get customer's full name by user_id\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE FUNCTION fn_get_customer_name(\r
+
+      \    p_user_id IN NUMBER\r
+
+      ) RETURN VARCHAR2\r
+
+      IS\r
+
+      \    v_name VARCHAR2(120);\r
+
+      BEGIN\r
+
+      \    SELECT first_name || ' ' || last_name\r
+
+      \    INTO v_name\r
+
+      \    FROM App_User\r
+
+      \    WHERE user_id = p_user_id AND role = 'CUSTOMER';\r
+
+      \    \r
+
+      \    RETURN v_name;\r
+
+      EXCEPTION\r
+
+      \    WHEN NO_DATA_FOUND THEN\r
+
+      \        RETURN 'Customer Not Found';\r
+
+      END;\r
+
+      /\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- FUNCTION 2: Calculate total amount spent by a customer\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE FUNCTION fn_customer_total_spent(\r
+
+      \    p_user_id IN NUMBER\r
+
+      ) RETURN NUMBER\r
+
+      IS\r
+
+      \    v_total NUMBER(12,2);\r
+
+      BEGIN\r
+
+      \    SELECT NVL(SUM(total_amount), 0)\r
+
+      \    INTO v_total\r
+
+      \    FROM Booking\r
+
+      \    WHERE user_id = p_user_id\r
+
+      \      AND status IN ('CONFIRMED', 'COMPLETED');\r
+
+      \    \r
+
+      \    RETURN v_total;\r
+
+      END;\r
+
+      /\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- FUNCTION 3: Count customer's active bookings\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE FUNCTION fn_customer_booking_count(\r
+
+      \    p_user_id IN NUMBER\r
+
+      ) RETURN NUMBER\r
+
+      IS\r
+
+      \    v_count NUMBER;\r
+
+      BEGIN\r
+
+      \    SELECT COUNT(*)\r
+
+      \    INTO v_count\r
+
+      \    FROM Booking\r
+
+      \    WHERE user_id = p_user_id\r
+
+      \      AND status NOT IN ('CANCELLED');\r
+
+      \    \r
+
+      \    RETURN v_count;\r
+
+      END;\r
+
+      /\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- FUNCTION 4: Check room availability for given dates\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE FUNCTION fn_check_room_availability(\r
+
+      \    p_room_id     IN NUMBER,\r
+
+      \    p_check_in    IN DATE,\r
+
+      \    p_check_out   IN DATE\r
+
+      ) RETURN VARCHAR2\r
+
+      IS\r
+
+      \    v_conflict NUMBER;\r
+
+      BEGIN\r
+
+      \    SELECT COUNT(*)\r
+
+      \    INTO v_conflict\r
+
+      \    FROM Hotel_Booking hb\r
+
+      \    JOIN Booking b ON hb.booking_id = b.booking_id\r
+
+      \    WHERE hb.room_id = p_room_id\r
+
+      \      AND b.status NOT IN ('CANCELLED')\r
+
+      \      AND p_check_in < hb.check_out_date\r
+
+      \      AND p_check_out > hb.check_in_date;\r
+
+      \    \r
+
+      \    IF v_conflict > 0 THEN\r
+
+      \        RETURN 'NOT AVAILABLE';\r
+
+      \    ELSE\r
+
+      \        RETURN 'AVAILABLE';\r
+
+      \    END IF;\r
+
+      END;\r
+
+      /\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- FUNCTION 5: Calculate total hotel booking cost\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE FUNCTION fn_calc_hotel_cost(\r
+
+      \    p_room_id     IN NUMBER,\r
+
+      \    p_check_in    IN DATE,\r
+
+      \    p_check_out   IN DATE\r
+
+      ) RETURN NUMBER\r
+
+      IS\r
+
+      \    v_price_per_night NUMBER(10,2);\r
+
+      \    v_nights          NUMBER;\r
+
+      BEGIN\r
+
+      \    SELECT price_per_night\r
+
+      \    INTO v_price_per_night\r
+
+      \    FROM Room\r
+
+      \    WHERE room_id = p_room_id;\r
+
+      \    \r
+
+      \    v_nights := p_check_out - p_check_in;\r
+
+      \    \r
+
+      \    RETURN v_price_per_night * v_nights;\r
+
+      EXCEPTION\r
+
+      \    WHEN NO_DATA_FOUND THEN\r
+
+      \        RETURN 0;\r
+
+      END;\r
+
+      /\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- FUNCTION 6: Get customer's average review rating\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE FUNCTION fn_customer_avg_rating(\r
+
+      \    p_user_id IN NUMBER\r
+
+      ) RETURN NUMBER\r
+
+      IS\r
+
+      \    v_avg NUMBER(3,2);\r
+
+      BEGIN\r
+
+      \    SELECT NVL(AVG(r.rating), 0)\r
+
+      \    INTO v_avg\r
+
+      \    FROM Review r\r
+
+      \    JOIN Trip t ON r.trip_id = t.trip_id\r
+
+      \    WHERE t.user_id = p_user_id;\r
+
+      \    \r
+
+      \    RETURN v_avg;\r
+
+      END;\r
+
+      /\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- FUNCTION 7: Get available seats for a travel segment\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE FUNCTION fn_available_travel_seats(\r
+
+      \    p_travel_segment_id IN NUMBER\r
+
+      ) RETURN NUMBER\r
+
+      IS\r
+
+      \    v_capacity  NUMBER;\r
+
+      \    v_booked    NUMBER;\r
+
+      BEGIN\r
+
+      \    SELECT capacity\r
+
+      \    INTO v_capacity\r
+
+      \    FROM Travel_Segment\r
+
+      \    WHERE travel_segment_id = p_travel_segment_id;\r
+
+      \    \r
+
+      \    SELECT NVL(SUM(tb.number_of_passengers), 0)\r
+
+      \    INTO v_booked\r
+
+      \    FROM Travel_Booking tb\r
+
+      \    JOIN Booking b ON tb.booking_id = b.booking_id\r
+
+      \    WHERE tb.travel_segment_id = p_travel_segment_id\r
+
+      \      AND b.status NOT IN ('CANCELLED');\r
+
+      \    \r
+
+      \    RETURN v_capacity - v_booked;\r
+
+      EXCEPTION\r
+
+      \    WHEN NO_DATA_FOUND THEN\r
+
+      \        RETURN 0;\r
+
+      END;\r
+
+      /\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- FUNCTION 8: Get available slots for an activity\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE FUNCTION fn_available_activity_slots(\r
+
+      \    p_activity_id IN NUMBER\r
+
+      ) RETURN NUMBER\r
+
+      IS\r
+
+      \    v_capacity  NUMBER;\r
+
+      \    v_booked    NUMBER;\r
+
+      BEGIN\r
+
+      \    SELECT capacity\r
+
+      \    INTO v_capacity\r
+
+      \    FROM Activity\r
+
+      \    WHERE activity_id = p_activity_id;\r
+
+      \    \r
+
+      \    SELECT NVL(SUM(ab.number_of_people), 0)\r
+
+      \    INTO v_booked\r
+
+      \    FROM Activity_Booking ab\r
+
+      \    JOIN Booking b ON ab.booking_id = b.booking_id\r
+
+      \    WHERE ab.activity_id = p_activity_id\r
+
+      \      AND b.status NOT IN ('CANCELLED');\r
+
+      \    \r
+
+      \    RETURN v_capacity - v_booked;\r
+
+      EXCEPTION\r
+
+      \    WHEN NO_DATA_FOUND THEN\r
+
+      \        RETURN 0;\r
+
+      END;\r
+
+      /\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- FUNCTION 9: Get customer's total refund amount\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE FUNCTION fn_customer_total_refund(\r
+
+      \    p_user_id IN NUMBER\r
+
+      ) RETURN NUMBER\r
+
+      IS\r
+
+      \    v_refund NUMBER(12,2);\r
+
+      BEGIN\r
+
+      \    SELECT NVL(SUM(p.refund_amount), 0)\r
+
+      \    INTO v_refund\r
+
+      \    FROM Payment p\r
+
+      \    JOIN Booking b ON p.booking_id = b.booking_id\r
+
+      \    WHERE b.user_id = p_user_id;\r
+
+      \    \r
+
+      \    RETURN v_refund;\r
+
+      END;\r
+
+      /\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- FUNCTION 10: Format booking status for display\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE FUNCTION fn_format_booking_status(\r
+
+      \    p_status IN VARCHAR2\r
+
+      ) RETURN VARCHAR2\r
+
+      IS\r
+
+      BEGIN\r
+
+      \    RETURN CASE UPPER(p_status)\r
+
+      \        WHEN 'CONFIRMED'  THEN 'Confirmed'\r
+
+      \        WHEN 'PENDING'    THEN 'Pending'\r
+
+      \        WHEN 'CANCELLED'  THEN 'Cancelled'\r
+
+      \        WHEN 'COMPLETED'  THEN 'Completed'\r
+
+      \        ELSE 'Unknown'\r
+
+      \    END;\r
+
+      END;\r
+
+      /"
+    languageId: oracle-sql

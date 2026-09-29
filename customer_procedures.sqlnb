@@ -1,0 +1,1063 @@
+cells:
+  - kind: 2
+    value: "-- ============================================================\r
+
+      -- PROCEDURE 1: Register a new customer\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE PROCEDURE sp_register_customer(\r
+
+      \    p_first_name    IN VARCHAR2,\r
+
+      \    p_last_name     IN VARCHAR2,\r
+
+      \    p_email         IN VARCHAR2,\r
+
+      \    p_phone         IN VARCHAR2,\r
+
+      \    p_password_hash IN VARCHAR2,\r
+
+      \    p_user_id       OUT NUMBER\r
+
+      )\r
+
+      IS\r
+
+      \    v_count NUMBER;\r
+
+      BEGIN\r
+
+      \    -- Check if email already exists\r
+
+      \    SELECT COUNT(*) INTO v_count\r
+
+      \    FROM App_User WHERE email = p_email;\r
+
+      \    \r
+
+      \    IF v_count > 0 THEN\r
+
+      \        RAISE_APPLICATION_ERROR(-20001, 'Email already registered.');\r
+
+      \    END IF;\r
+
+      \    \r
+
+      \    INSERT INTO App_User (\r
+
+      \        user_id, first_name, last_name, email, phone,\r
+
+      \        password_hash, role, status, created_at\r
+
+      \    ) VALUES (\r
+
+      \        user_seq.NEXTVAL, p_first_name, p_last_name, p_email,\r
+
+      \        p_phone, p_password_hash, 'CUSTOMER', 'ACTIVE',
+      CURRENT_TIMESTAMP\r
+
+      \    )\r
+
+      \    RETURNING user_id INTO p_user_id;\r
+
+      \    \r
+
+      \    COMMIT;\r
+
+      \    DBMS_OUTPUT.PUT_LINE('Customer registered with ID: ' || p_user_id);\r
+
+      EXCEPTION\r
+
+      \    WHEN OTHERS THEN\r
+
+      \        ROLLBACK;\r
+
+      \        RAISE;\r
+
+      END;\r
+
+      /\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- PROCEDURE 2: Create a new trip for customer\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE PROCEDURE sp_create_trip(\r
+
+      \    p_user_id     IN NUMBER,\r
+
+      \    p_trip_name   IN VARCHAR2,\r
+
+      \    p_start_date  IN DATE,\r
+
+      \    p_end_date    IN DATE,\r
+
+      \    p_trip_id     OUT NUMBER\r
+
+      )\r
+
+      IS\r
+
+      BEGIN\r
+
+      \    INSERT INTO Trip (\r
+
+      \        user_id, trip_name, start_date, end_date,\r
+
+      \        status, created_at\r
+
+      \    ) VALUES (\r
+
+      \        p_user_id, p_trip_name, p_start_date,\r
+
+      \        p_end_date, 'PLANNED', CURRENT_TIMESTAMP\r
+
+      \    )\r
+
+      \    RETURNING trip_id INTO p_trip_id;\r
+
+      \    \r
+
+      \    COMMIT;\r
+
+      \    DBMS_OUTPUT.PUT_LINE('Trip created with ID: ' || p_trip_id);\r
+
+      EXCEPTION\r
+
+      \    WHEN OTHERS THEN\r
+
+      \        ROLLBACK;\r
+
+      \        RAISE;\r
+
+      END;\r
+
+      /\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- PROCEDURE 3: Add destination to trip\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE PROCEDURE sp_add_trip_destination(\r
+
+      \    p_trip_id        IN NUMBER,\r
+
+      \    p_destination_id IN NUMBER,\r
+
+      \    p_visit_order    IN NUMBER,\r
+
+      \    p_arrival_date   IN DATE,\r
+
+      \    p_departure_date IN DATE\r
+
+      )\r
+
+      IS\r
+
+      BEGIN\r
+
+      \    INSERT INTO Trip_Destination (\r
+
+      \        trip_id, destination_id, visit_order, arrival_date,
+      departure_date\r
+
+      \    ) VALUES (\r
+
+      \        p_trip_id, p_destination_id, p_visit_order,\r
+
+      \        p_arrival_date, p_departure_date\r
+
+      \    );\r
+
+      \    \r
+
+      \    COMMIT;\r
+
+      \    DBMS_OUTPUT.PUT_LINE('Destination added to trip.');\r
+
+      EXCEPTION\r
+
+      \    WHEN DUP_VAL_ON_INDEX THEN\r
+
+      \        RAISE_APPLICATION_ERROR(-20002, 'Destination already in
+      trip.');\r
+
+      \    WHEN OTHERS THEN\r
+
+      \        ROLLBACK;\r
+
+      \        RAISE;\r
+
+      END;\r
+
+      /\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- PROCEDURE 4: Make a hotel booking\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE PROCEDURE sp_book_hotel(\r
+
+      \    p_user_id        IN NUMBER,\r
+
+      \    p_trip_id        IN NUMBER,\r
+
+      \    p_room_id        IN NUMBER,\r
+
+      \    p_check_in       IN DATE,\r
+
+      \    p_check_out      IN DATE,\r
+
+      \    p_num_guests     IN NUMBER,\r
+
+      \    p_booking_id     OUT NUMBER\r
+
+      )\r
+
+      IS\r
+
+      \    v_availability VARCHAR2(20);\r
+
+      \    v_total        NUMBER(10,2);\r
+
+      \    v_price        NUMBER(10,2);\r
+
+      \    v_nights       NUMBER;\r
+
+      BEGIN\r
+
+      \    -- Check availability\r
+
+      \    v_availability := fn_check_room_availability(p_room_id, p_check_in,
+      p_check_out);\r
+
+      \    \r
+
+      \    IF v_availability = 'NOT AVAILABLE' THEN\r
+
+      \        RAISE_APPLICATION_ERROR(-20003, 'Room not available for selected
+      dates.');\r
+
+      \    END IF;\r
+
+      \    \r
+
+      \    -- Calculate total\r
+
+      \    SELECT price_per_night INTO v_price\r
+
+      \    FROM Room WHERE room_id = p_room_id;\r
+
+      \    \r
+
+      \    v_nights := p_check_out - p_check_in;\r
+
+      \    v_total  := v_price * v_nights;\r
+
+      \    \r
+
+      \    -- Create booking\r
+
+      \    INSERT INTO Booking (\r
+
+      \        booking_id, user_id, trip_id, booking_type,\r
+
+      \        booking_date, total_amount, status\r
+
+      \    ) VALUES (\r
+
+      \        SEQ_BOOKING.NEXTVAL, p_user_id, p_trip_id, 'HOTEL',\r
+
+      \        CURRENT_TIMESTAMP, v_total, 'CONFIRMED'\r
+
+      \    ) RETURNING booking_id INTO p_booking_id;\r
+
+      \    \r
+
+      \    -- Create hotel booking child\r
+
+      \    INSERT INTO Hotel_Booking (\r
+
+      \        booking_id, room_id, check_in_date, check_out_date,
+      number_of_guests\r
+
+      \    ) VALUES (\r
+
+      \        p_booking_id, p_room_id, p_check_in, p_check_out, p_num_guests\r
+
+      \    );\r
+
+      \    \r
+
+      \    COMMIT;\r
+
+      \    DBMS_OUTPUT.PUT_LINE('Hotel booked. Booking ID: ' || p_booking_id \r
+
+      \                         || ', Total: ' || v_total);\r
+
+      EXCEPTION\r
+
+      \    WHEN OTHERS THEN\r
+
+      \        ROLLBACK;\r
+
+      \        RAISE;\r
+
+      END;\r
+
+      /\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- PROCEDURE 5: Make a package booking\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE PROCEDURE sp_book_package(\r
+
+      \    p_user_id       IN NUMBER,\r
+
+      \    p_trip_id       IN NUMBER,\r
+
+      \    p_package_id    IN NUMBER,\r
+
+      \    p_num_people    IN NUMBER,\r
+
+      \    p_travel_date   IN DATE,\r
+
+      \    p_booking_id    OUT NUMBER\r
+
+      )\r
+
+      IS\r
+
+      \    v_price NUMBER(10,2);\r
+
+      \    v_total NUMBER(10,2);\r
+
+      BEGIN\r
+
+      \    SELECT price INTO v_price\r
+
+      \    FROM Tour_Package WHERE package_id = p_package_id;\r
+
+      \    \r
+
+      \    v_total := v_price * p_num_people;\r
+
+      \    \r
+
+      \    INSERT INTO Booking (\r
+
+      \        booking_id, user_id, trip_id, booking_type,\r
+
+      \        booking_date, total_amount, status\r
+
+      \    ) VALUES (\r
+
+      \        SEQ_BOOKING.NEXTVAL, p_user_id, p_trip_id, 'PACKAGE',\r
+
+      \        CURRENT_TIMESTAMP, v_total, 'CONFIRMED'\r
+
+      \    ) RETURNING booking_id INTO p_booking_id;\r
+
+      \    \r
+
+      \    INSERT INTO Package_Booking (\r
+
+      \        booking_id, package_id, number_of_people, travel_date\r
+
+      \    ) VALUES (\r
+
+      \        p_booking_id, p_package_id, p_num_people, p_travel_date\r
+
+      \    );\r
+
+      \    \r
+
+      \    COMMIT;\r
+
+      \    DBMS_OUTPUT.PUT_LINE('Package booked. Booking ID: ' || p_booking_id
+      \r
+
+      \                         || ', Total: ' || v_total);\r
+
+      EXCEPTION\r
+
+      \    WHEN OTHERS THEN\r
+
+      \        ROLLBACK;\r
+
+      \        RAISE;\r
+
+      END;\r
+
+      /\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- PROCEDURE 6: Make an activity booking\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE PROCEDURE sp_book_activity(\r
+
+      \    p_user_id       IN NUMBER,\r
+
+      \    p_trip_id       IN NUMBER,\r
+
+      \    p_activity_id   IN NUMBER,\r
+
+      \    p_activity_date IN DATE,\r
+
+      \    p_num_people    IN NUMBER,\r
+
+      \    p_booking_id    OUT NUMBER\r
+
+      )\r
+
+      IS\r
+
+      \    v_price    NUMBER(10,2);\r
+
+      \    v_total    NUMBER(10,2);\r
+
+      \    v_available NUMBER;\r
+
+      BEGIN\r
+
+      \    -- Check availability\r
+
+      \    v_available := fn_available_activity_slots(p_activity_id);\r
+
+      \    \r
+
+      \    IF v_available < p_num_people THEN\r
+
+      \        RAISE_APPLICATION_ERROR(-20004, \r
+
+      \            'Not enough slots. Available: ' || v_available);\r
+
+      \    END IF;\r
+
+      \    \r
+
+      \    SELECT price INTO v_price\r
+
+      \    FROM Activity WHERE activity_id = p_activity_id;\r
+
+      \    \r
+
+      \    v_total := v_price * p_num_people;\r
+
+      \    \r
+
+      \    INSERT INTO Booking (\r
+
+      \        booking_id, user_id, trip_id, booking_type,\r
+
+      \        booking_date, total_amount, status\r
+
+      \    ) VALUES (\r
+
+      \        SEQ_BOOKING.NEXTVAL, p_user_id, p_trip_id, 'ACTIVITY',\r
+
+      \        CURRENT_TIMESTAMP, v_total, 'CONFIRMED'\r
+
+      \    ) RETURNING booking_id INTO p_booking_id;\r
+
+      \    \r
+
+      \    INSERT INTO Activity_Booking (\r
+
+      \        booking_id, activity_id, activity_date, number_of_people\r
+
+      \    ) VALUES (\r
+
+      \        p_booking_id, p_activity_id, p_activity_date, p_num_people\r
+
+      \    );\r
+
+      \    \r
+
+      \    COMMIT;\r
+
+      \    DBMS_OUTPUT.PUT_LINE('Activity booked. Booking ID: ' || p_booking_id
+      \r
+
+      \                         || ', Total: ' || v_total);\r
+
+      EXCEPTION\r
+
+      \    WHEN OTHERS THEN\r
+
+      \        ROLLBACK;\r
+
+      \        RAISE;\r
+
+      END;\r
+
+      /\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- PROCEDURE 7: Make a travel booking\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE PROCEDURE sp_book_travel(\r
+
+      \    p_user_id           IN NUMBER,\r
+
+      \    p_trip_id           IN NUMBER,\r
+
+      \    p_travel_segment_id IN NUMBER,\r
+
+      \    p_num_passengers    IN NUMBER,\r
+
+      \    p_booking_id        OUT NUMBER\r
+
+      )\r
+
+      IS\r
+
+      \    v_price     NUMBER(10,2);\r
+
+      \    v_total     NUMBER(10,2);\r
+
+      \    v_available NUMBER;\r
+
+      BEGIN\r
+
+      \    v_available := fn_available_travel_seats(p_travel_segment_id);\r
+
+      \    \r
+
+      \    IF v_available < p_num_passengers THEN\r
+
+      \        RAISE_APPLICATION_ERROR(-20005, \r
+
+      \            'Not enough seats. Available: ' || v_available);\r
+
+      \    END IF;\r
+
+      \    \r
+
+      \    SELECT price INTO v_price\r
+
+      \    FROM Travel_Segment WHERE travel_segment_id = p_travel_segment_id;\r
+
+      \    \r
+
+      \    v_total := v_price * p_num_passengers;\r
+
+      \    \r
+
+      \    INSERT INTO Booking (\r
+
+      \        booking_id, user_id, trip_id, booking_type,\r
+
+      \        booking_date, total_amount, status\r
+
+      \    ) VALUES (\r
+
+      \        SEQ_BOOKING.NEXTVAL, p_user_id, p_trip_id, 'TRAVEL',\r
+
+      \        CURRENT_TIMESTAMP, v_total, 'CONFIRMED'\r
+
+      \    ) RETURNING booking_id INTO p_booking_id;\r
+
+      \    \r
+
+      \    INSERT INTO Travel_Booking (\r
+
+      \        booking_id, travel_segment_id, number_of_passengers\r
+
+      \    ) VALUES (\r
+
+      \        p_booking_id, p_travel_segment_id, p_num_passengers\r
+
+      \    );\r
+
+      \    \r
+
+      \    COMMIT;\r
+
+      \    DBMS_OUTPUT.PUT_LINE('Travel booked. Booking ID: ' || p_booking_id \r
+
+      \                         || ', Total: ' || v_total);\r
+
+      EXCEPTION\r
+
+      \    WHEN OTHERS THEN\r
+
+      \        ROLLBACK;\r
+
+      \        RAISE;\r
+
+      END;\r
+
+      /\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- PROCEDURE 8: Cancel a booking (customer)\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE PROCEDURE sp_cancel_booking(\r
+
+      \    p_booking_id IN NUMBER,\r
+
+      \    p_user_id    IN NUMBER\r
+
+      )\r
+
+      IS\r
+
+      \    v_owner_id NUMBER;\r
+
+      \    v_status   VARCHAR2(20);\r
+
+      BEGIN\r
+
+      \    -- Verify ownership and status\r
+
+      \    SELECT user_id, status\r
+
+      \    INTO v_owner_id, v_status\r
+
+      \    FROM Booking\r
+
+      \    WHERE booking_id = p_booking_id;\r
+
+      \    \r
+
+      \    IF v_owner_id != p_user_id THEN\r
+
+      \        RAISE_APPLICATION_ERROR(-20006, 'You can only cancel your own
+      bookings.');\r
+
+      \    END IF;\r
+
+      \    \r
+
+      \    IF v_status = 'CANCELLED' THEN\r
+
+      \        RAISE_APPLICATION_ERROR(-20007, 'Booking is already
+      cancelled.');\r
+
+      \    END IF;\r
+
+      \    \r
+
+      \    -- Update booking status\r
+
+      \    UPDATE Booking\r
+
+      \    SET status = 'CANCELLED',\r
+
+      \        cancelled_at = CURRENT_TIMESTAMP\r
+
+      \    WHERE booking_id = p_booking_id;\r
+
+      \    \r
+
+      \    -- Update payment to refunded\r
+
+      \    UPDATE Payment\r
+
+      \    SET status = 'REFUNDED',\r
+
+      \        refund_amount = amount\r
+
+      \    WHERE booking_id = p_booking_id\r
+
+      \      AND status = 'SUCCESS';\r
+
+      \    \r
+
+      \    COMMIT;\r
+
+      \    DBMS_OUTPUT.PUT_LINE('Booking ' || p_booking_id || ' cancelled and
+      refund initiated.');\r
+
+      EXCEPTION\r
+
+      \    WHEN NO_DATA_FOUND THEN\r
+
+      \        RAISE_APPLICATION_ERROR(-20008, 'Booking not found.');\r
+
+      \    WHEN OTHERS THEN\r
+
+      \        ROLLBACK;\r
+
+      \        RAISE;\r
+
+      END;\r
+
+      /\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- PROCEDURE 9: Submit a review for a completed trip\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE PROCEDURE sp_submit_review(\r
+
+      \    p_user_id   IN NUMBER,\r
+
+      \    p_trip_id   IN NUMBER,\r
+
+      \    p_rating    IN NUMBER,\r
+
+      \    p_comment   IN VARCHAR2\r
+
+      )\r
+
+      IS\r
+
+      \    v_trip_owner NUMBER;\r
+
+      \    v_count      NUMBER;\r
+
+      BEGIN\r
+
+      \    -- 1. Verify ownership\r
+
+      \    SELECT user_id INTO v_trip_owner\r
+
+      \    FROM Trip WHERE trip_id = p_trip_id;\r
+
+      \    \r
+
+      \    IF v_trip_owner != p_user_id THEN\r
+
+      \        RAISE_APPLICATION_ERROR(-20009, 'You can only review your own
+      trips.');\r
+
+      \    END IF;\r
+
+      \    \r
+
+      \    -- 2. Check duplicate\r
+
+      \    SELECT COUNT(*) INTO v_count\r
+
+      \    FROM Review WHERE trip_id = p_trip_id;\r
+
+      \    \r
+
+      \    IF v_count > 0 THEN\r
+
+      \        RAISE_APPLICATION_ERROR(-20010, 'Review already exists for this
+      trip.');\r
+
+      \    END IF;\r
+
+      \    \r
+
+      \    -- 3. Validate rating\r
+
+      \    IF p_rating < 1 OR p_rating > 5 THEN\r
+
+      \        RAISE_APPLICATION_ERROR(-20011, 'Rating must be between 1 and
+      5.');\r
+
+      \    END IF;\r
+
+      \    \r
+
+      \    -- 4. Insert with USER_COMMENT and review_seq\r
+
+      \    INSERT INTO Review (\r
+
+      \        review_id, trip_id, rating, user_comment, review_date\r
+
+      \    ) VALUES (\r
+
+      \        review_seq.NEXTVAL, p_trip_id, p_rating, p_comment,
+      CURRENT_TIMESTAMP\r
+
+      \    );\r
+
+      \    \r
+
+      \    COMMIT;\r
+
+      \    DBMS_OUTPUT.PUT_LINE('Review submitted for trip ' || p_trip_id);\r
+
+      EXCEPTION\r
+
+      \    WHEN NO_DATA_FOUND THEN\r
+
+      \        RAISE_APPLICATION_ERROR(-20012, 'Trip not found.');\r
+
+      \    WHEN OTHERS THEN\r
+
+      \        ROLLBACK;\r
+
+      \        RAISE;\r
+
+      END;\r
+
+      /\r
+
+      -- ============================================================\r
+
+      -- PROCEDURE 10: Make a payment for a booking\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE PROCEDURE sp_make_payment(\r
+
+      \    p_booking_id    IN NUMBER,\r
+
+      \    p_amount        IN NUMBER,\r
+
+      \    p_method        IN VARCHAR2,\r
+
+      \    p_user_id       IN NUMBER,\r
+
+      \    p_payment_id    OUT NUMBER\r
+
+      )\r
+
+      IS\r
+
+      \    v_owner_id    NUMBER;\r
+
+      \    v_txn_ref     VARCHAR2(100);\r
+
+      \    v_paid        NUMBER;\r
+
+      \    v_total       NUMBER;\r
+
+      BEGIN\r
+
+      \    -- Verify ownership\r
+
+      \    SELECT user_id, total_amount\r
+
+      \    INTO v_owner_id, v_total\r
+
+      \    FROM Booking\r
+
+      \    WHERE booking_id = p_booking_id;\r
+
+      \    \r
+
+      \    IF v_owner_id != p_user_id THEN\r
+
+      \        RAISE_APPLICATION_ERROR(-20012, 'You can only pay for your own
+      bookings.');\r
+
+      \    END IF;\r
+
+      \    \r
+
+      \    -- Check already paid\r
+
+      \    SELECT NVL(SUM(amount), 0) INTO v_paid\r
+
+      \    FROM Payment\r
+
+      \    WHERE booking_id = p_booking_id AND status = 'SUCCESS';\r
+
+      \    \r
+
+      \    IF v_paid >= v_total THEN\r
+
+      \        RAISE_APPLICATION_ERROR(-20013, 'Booking already fully paid.');\r
+
+      \    END IF;\r
+
+      \    \r
+
+      \    -- Generate unique transaction reference\r
+
+      \    v_txn_ref := 'TXN-' || TO_CHAR(SYSDATE, 'YYYY') || '-' || \r
+
+      \                 LPAD(SEQ_PAYMENT.NEXTVAL, 4, '0');\r
+
+      \    \r
+
+      \    INSERT INTO Payment (\r
+
+      \        payment_id, booking_id, transaction_reference, amount,\r
+
+      \        payment_method, payment_date, status, refund_amount\r
+
+      \    ) VALUES (\r
+
+      \        SEQ_PAYMENT.NEXTVAL, p_booking_id, v_txn_ref, p_amount,\r
+
+      \        p_method, CURRENT_TIMESTAMP, 'SUCCESS', 0\r
+
+      \    ) RETURNING payment_id INTO p_payment_id;\r
+
+      \    \r
+
+      \    COMMIT;\r
+
+      \    DBMS_OUTPUT.PUT_LINE('Payment successful. Ref: ' || v_txn_ref);\r
+
+      EXCEPTION\r
+
+      \    WHEN OTHERS THEN\r
+
+      \        ROLLBACK;\r
+
+      \        RAISE;\r
+
+      END;\r
+
+      /\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- PROCEDURE 11: Get customer dashboard summary\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE PROCEDURE sp_customer_dashboard(\r
+
+      \    p_user_id IN NUMBER\r
+
+      )\r
+
+      IS\r
+
+      \    v_name          VARCHAR2(120);\r
+
+      \    v_total_spent   NUMBER(12,2);\r
+
+      \    v_bookings      NUMBER;\r
+
+      \    v_refund        NUMBER(12,2);\r
+
+      \    v_avg_rating    NUMBER(3,2);\r
+
+      BEGIN\r
+
+      \    v_name        := fn_get_customer_name(p_user_id);\r
+
+      \    v_total_spent := fn_customer_total_spent(p_user_id);\r
+
+      \    v_bookings    := fn_customer_booking_count(p_user_id);\r
+
+      \    v_refund      := fn_customer_total_refund(p_user_id);\r
+
+      \    v_avg_rating  := fn_customer_avg_rating(p_user_id);\r
+
+      \    \r
+
+      \    DBMS_OUTPUT.PUT_LINE('========================================');\r
+
+      \    DBMS_OUTPUT.PUT_LINE('  CUSTOMER DASHBOARD: ' || v_name);\r
+
+      \    DBMS_OUTPUT.PUT_LINE('========================================');\r
+
+      \    DBMS_OUTPUT.PUT_LINE('  Total Spent    : ₹' || v_total_spent);\r
+
+      \    DBMS_OUTPUT.PUT_LINE('  Active Bookings: ' || v_bookings);\r
+
+      \    DBMS_OUTPUT.PUT_LINE('  Total Refunds  : ₹' || v_refund);\r
+
+      \    DBMS_OUTPUT.PUT_LINE('  Avg Rating     : ' || v_avg_rating);\r
+
+      \    DBMS_OUTPUT.PUT_LINE('========================================');\r
+
+      END;\r
+
+      /\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- PROCEDURE 12: Update customer profile\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE PROCEDURE sp_update_customer_profile(\r
+
+      \    p_user_id   IN NUMBER,\r
+
+      \    p_first_name IN VARCHAR2,\r
+
+      \    p_last_name  IN VARCHAR2,\r
+
+      \    p_phone      IN VARCHAR2\r
+
+      )\r
+
+      IS\r
+
+      BEGIN\r
+
+      \    UPDATE App_User\r
+
+      \    SET first_name = p_first_name,\r
+
+      \        last_name  = p_last_name,\r
+
+      \        phone      = p_phone\r
+
+      \    WHERE user_id = p_user_id AND role = 'CUSTOMER';\r
+
+      \    \r
+
+      \    IF SQL%ROWCOUNT = 0 THEN\r
+
+      \        RAISE_APPLICATION_ERROR(-20014, 'Customer not found.');\r
+
+      \    END IF;\r
+
+      \    \r
+
+      \    COMMIT;\r
+
+      \    DBMS_OUTPUT.PUT_LINE('Profile updated successfully.');\r
+
+      EXCEPTION\r
+
+      \    WHEN OTHERS THEN\r
+
+      \        ROLLBACK;\r
+
+      \        RAISE;\r
+
+      END;\r
+
+      /"
+    languageId: oracle-sql
+  - kind: 2
+    value: commit;
+    languageId: oracle-sql
