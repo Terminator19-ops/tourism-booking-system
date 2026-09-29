@@ -727,6 +727,3 @@ cells:
 
       SELECT * FROM vw_booking_payment_summary;"
     languageId: oracle-sql
-  - kind: 2
-    value: commit;
-    languageId: oracle-sql
