@@ -1,0 +1,1817 @@
+cells:
+  - kind: 2
+    value: "  /* 1. CHECK WHETHER ALL TABLES CONTAIN DATA\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT 'APP_USER' AS TABLE_NAME, COUNT(*) AS RECORD_COUNT FROM App_User\r
+
+      UNION ALL\r
+
+      SELECT 'DESTINATION', COUNT(*) FROM Destination\r
+
+      UNION ALL\r
+
+      SELECT 'HOTEL', COUNT(*) FROM Hotel\r
+
+      UNION ALL\r
+
+      SELECT 'ROOM', COUNT(*) FROM Room\r
+
+      UNION ALL\r
+
+      SELECT 'ACTIVITY', COUNT(*) FROM Activity\r
+
+      UNION ALL\r
+
+      SELECT 'TOUR_PACKAGE', COUNT(*) FROM Tour_Package\r
+
+      UNION ALL\r
+
+      SELECT 'TRAVEL_SEGMENT', COUNT(*) FROM Travel_Segment\r
+
+      UNION ALL\r
+
+      SELECT 'TRIP', COUNT(*) FROM Trip\r
+
+      UNION ALL\r
+
+      SELECT 'TRIP_DESTINATION', COUNT(*) FROM Trip_Destination\r
+
+      UNION ALL\r
+
+      SELECT 'PACKAGE_DESTINATION', COUNT(*) FROM Package_Destination\r
+
+      UNION ALL\r
+
+      SELECT 'PACKAGE_ACTIVITY', COUNT(*) FROM Package_Activity\r
+
+      UNION ALL\r
+
+      SELECT 'BOOKING', COUNT(*) FROM Booking\r
+
+      UNION ALL\r
+
+      SELECT 'HOTEL_BOOKING', COUNT(*) FROM Hotel_Booking\r
+
+      UNION ALL\r
+
+      SELECT 'PACKAGE_BOOKING', COUNT(*) FROM Package_Booking\r
+
+      UNION ALL\r
+
+      SELECT 'ACTIVITY_BOOKING', COUNT(*) FROM Activity_Booking\r
+
+      UNION ALL\r
+
+      SELECT 'TRAVEL_BOOKING', COUNT(*) FROM Travel_Booking\r
+
+      UNION ALL\r
+
+      SELECT 'PAYMENT', COUNT(*) FROM Payment\r
+
+      UNION ALL\r
+
+      SELECT 'REVIEW', COUNT(*) FROM Review\r
+
+      UNION ALL\r
+
+      SELECT 'AUDIT_LOG', COUNT(*) FROM Audit_Log;\r\n"
+    languageId: oracle-sql
+  - kind: 2
+    value: "/* ============================================================\r
+
+      \   2. TEST APP_USER\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT *\r
+
+      FROM App_User\r
+
+      ORDER BY user_id;\r
+
+      \r
+
+      \r
+
+      /* Check users by role */\r
+
+      SELECT role, COUNT(*) AS total_users\r
+
+      FROM App_User\r
+
+      GROUP BY role;\r
+
+      \r
+
+      \r
+
+      /* Check unique emails */\r
+
+      SELECT email, COUNT(*) AS email_count\r
+
+      FROM App_User\r
+
+      GROUP BY email\r
+
+      HAVING COUNT(*) > 1;\r\n"
+    languageId: oracle-sql
+  - kind: 2
+    value: "/* ============================================================\r
+
+      \   3. TEST DESTINATION\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT *\r
+
+      FROM Destination\r
+
+      ORDER BY destination_id;\r
+
+      \r
+
+      \r
+
+      /* Destinations by country */\r
+
+      SELECT country, COUNT(*) AS destination_count\r
+
+      FROM Destination\r
+
+      GROUP BY country\r
+
+      ORDER BY country;\r
+
+      \r
+
+      \r
+
+      /* Active destinations */\r
+
+      SELECT *\r
+
+      FROM Destination\r
+
+      WHERE status = 'ACTIVE';"
+    languageId: oracle-sql
+  - kind: 2
+    value: "SELECT *\r
+
+      FROM Hotel\r
+
+      ORDER BY hotel_id;\r
+
+      \r
+
+      \r
+
+      /* Hotel with owner and destination */\r
+
+      SELECT\r
+
+      \    h.hotel_id,\r
+
+      \    h.name AS hotel_name,\r
+
+      \    u.first_name || ' ' || u.last_name AS owner_name,\r
+
+      \    d.name AS destination,\r
+
+      \    d.city,\r
+
+      \    h.star_rating,\r
+
+      \    h.status\r
+
+      FROM Hotel h\r
+
+      JOIN App_User u\r
+
+      \    ON h.owner_id = u.user_id\r
+
+      JOIN Destination d\r
+
+      \    ON h.destination_id = d.destination_id\r
+
+      ORDER BY h.hotel_id;"
+    languageId: oracle-sql
+  - kind: 2
+    value: "/* ============================================================\r
+
+      \   5. TEST ROOM\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT *\r
+
+      FROM Room\r
+
+      ORDER BY room_id;\r
+
+      \r
+
+      \r
+
+      /* Rooms with hotel names */\r
+
+      SELECT\r
+
+      \    r.room_id,\r
+
+      \    r.room_number,\r
+
+      \    r.room_type,\r
+
+      \    r.capacity,\r
+
+      \    r.price_per_night,\r
+
+      \    r.status,\r
+
+      \    h.name AS hotel_name\r
+
+      FROM Room r\r
+
+      JOIN Hotel h\r
+
+      \    ON r.hotel_id = h.hotel_id\r
+
+      ORDER BY h.name, r.room_number;\r
+
+      \r
+
+      \r
+
+      /* Available rooms */\r
+
+      SELECT\r
+
+      \    r.room_id,\r
+
+      \    h.name AS hotel_name,\r
+
+      \    r.room_number,\r
+
+      \    r.room_type,\r
+
+      \    r.capacity,\r
+
+      \    r.price_per_night\r
+
+      FROM Room r\r
+
+      JOIN Hotel h\r
+
+      \    ON r.hotel_id = h.hotel_id\r
+
+      WHERE r.status = 'AVAILABLE';\r
+
+      \r
+
+      \r
+
+      /* ============================================================\r
+
+      \   6. TEST ACTIVITY\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT *\r
+
+      FROM Activity\r
+
+      ORDER BY activity_id;\r
+
+      \r
+
+      \r
+
+      /* Activities with destination */\r
+
+      SELECT\r
+
+      \    a.activity_id,\r
+
+      \    a.name AS activity_name,\r
+
+      \    d.name AS destination,\r
+
+      \    a.category,\r
+
+      \    a.duration_hours,\r
+
+      \    a.price,\r
+
+      \    a.capacity,\r
+
+      \    a.status\r
+
+      FROM Activity a\r
+
+      JOIN Destination d\r
+
+      \    ON a.destination_id = d.destination_id\r
+
+      ORDER BY d.name, a.name;\r
+
+      \r
+
+      \r
+
+      /* Available activities */\r
+
+      SELECT *\r
+
+      FROM Activity\r
+
+      WHERE status = 'ACTIVE';\r
+
+      \r\n"
+    languageId: oracle-sql
+  - kind: 2
+    value: "/* ============================================================\r
+
+      \   7. TEST TOUR_PACKAGE\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT *\r
+
+      FROM Tour_Package\r
+
+      ORDER BY package_id;\r
+
+      \r
+
+      \r
+
+      /* Packages with price */\r
+
+      SELECT\r
+
+      \    package_id,\r
+
+      \    name,\r
+
+      \    duration_days,\r
+
+      \    price,\r
+
+      \    max_capacity,\r
+
+      \    status\r
+
+      FROM Tour_Package\r
+
+      ORDER BY price;"
+    languageId: oracle-sql
+  - kind: 2
+    value: "/* ============================================================\r
+
+      \   8. TEST TRAVEL_SEGMENT\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT *\r
+
+      FROM Travel_Segment\r
+
+      ORDER BY travel_segment_id;\r
+
+      \r
+
+      \r
+
+      /* Travel segments with origin and destination */\r
+
+      SELECT\r
+
+      \    ts.travel_segment_id,\r
+
+      \    d1.name AS origin,\r
+
+      \    d2.name AS destination,\r
+
+      \    ts.transport_type,\r
+
+      \    ts.operator_name,\r
+
+      \    ts.departure_time,\r
+
+      \    ts.arrival_time,\r
+
+      \    ts.price,\r
+
+      \    ts.capacity,\r
+
+      \    ts.status\r
+
+      FROM Travel_Segment ts\r
+
+      JOIN Destination d1\r
+
+      \    ON ts.origin_destination_id = d1.destination_id\r
+
+      JOIN Destination d2\r
+
+      \    ON ts.destination_destination_id = d2.destination_id\r
+
+      ORDER BY ts.travel_segment_id;"
+    languageId: oracle-sql
+  - kind: 2
+    value: "/* ============================================================\r
+
+      \   9. TEST TRIP\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT *\r
+
+      FROM Trip\r
+
+      ORDER BY trip_id;\r
+
+      \r
+
+      \r
+
+      /* Trips with customer names */\r
+
+      SELECT\r
+
+      \    t.trip_id,\r
+
+      \    t.trip_name,\r
+
+      \    u.first_name || ' ' || u.last_name AS customer_name,\r
+
+      \    t.start_date,\r
+
+      \    t.end_date,\r
+
+      \    t.status\r
+
+      FROM Trip t\r
+
+      JOIN App_User u\r
+
+      \    ON t.user_id = u.user_id\r
+
+      ORDER BY t.trip_id;"
+    languageId: oracle-sql
+  - kind: 2
+    value: "/* ============================================================\r
+
+      \   10. TEST TRIP_DESTINATION\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT *\r
+
+      FROM Trip_Destination\r
+
+      ORDER BY trip_id, visit_order;\r
+
+      \r
+
+      \r
+
+      /* Trip itinerary */\r
+
+      SELECT\r
+
+      \    t.trip_id,\r
+
+      \    t.trip_name,\r
+
+      \    d.name AS destination,\r
+
+      \    td.visit_order,\r
+
+      \    td.arrival_date,\r
+
+      \    td.departure_date\r
+
+      FROM Trip_Destination td\r
+
+      JOIN Trip t\r
+
+      \    ON td.trip_id = t.trip_id\r
+
+      JOIN Destination d\r
+
+      \    ON td.destination_id = d.destination_id\r
+
+      ORDER BY t.trip_id, td.visit_order;"
+    languageId: oracle-sql
+  - kind: 2
+    value: "/* ============================================================\r
+
+      \   11. TEST PACKAGE_DESTINATION\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT *\r
+
+      FROM Package_Destination\r
+
+      ORDER BY package_id, visit_order;\r
+
+      \r
+
+      \r
+
+      /* Package itinerary */\r
+
+      SELECT\r
+
+      \    p.package_id,\r
+
+      \    p.name AS package_name,\r
+
+      \    d.name AS destination,\r
+
+      \    pd.visit_order,\r
+
+      \    pd.days\r
+
+      FROM Package_Destination pd\r
+
+      JOIN Tour_Package p\r
+
+      \    ON pd.package_id = p.package_id\r
+
+      JOIN Destination d\r
+
+      \    ON pd.destination_id = d.destination_id\r
+
+      ORDER BY p.package_id, pd.visit_order;"
+    languageId: oracle-sql
+  - kind: 2
+    value: "/* ============================================================\r
+
+      \   12. TEST PACKAGE_ACTIVITY\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT *\r
+
+      FROM Package_Activity\r
+
+      ORDER BY package_id, activity_day;\r
+
+      \r
+
+      \r
+
+      /* Package activities */\r
+
+      SELECT\r
+
+      \    p.package_id,\r
+
+      \    p.name AS package_name,\r
+
+      \    a.name AS activity_name,\r
+
+      \    pa.activity_day,\r
+
+      \    a.price\r
+
+      FROM Package_Activity pa\r
+
+      JOIN Tour_Package p\r
+
+      \    ON pa.package_id = p.package_id\r
+
+      JOIN Activity a\r
+
+      \    ON pa.activity_id = a.activity_id\r
+
+      ORDER BY p.package_id, pa.activity_day;"
+    languageId: oracle-sql
+  - kind: 2
+    value: "/* ============================================================\r
+
+      \   13. TEST BOOKING\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT *\r
+
+      FROM Booking\r
+
+      ORDER BY booking_id;\r
+
+      \r
+
+      \r
+
+      /* Booking with customer */\r
+
+      SELECT\r
+
+      \    b.booking_id,\r
+
+      \    u.first_name || ' ' || u.last_name AS customer_name,\r
+
+      \    b.booking_type,\r
+
+      \    b.booking_date,\r
+
+      \    b.total_amount,\r
+
+      \    b.status,\r
+
+      \    b.cancelled_at\r
+
+      FROM Booking b\r
+
+      JOIN App_User u\r
+
+      \    ON b.user_id = u.user_id\r
+
+      ORDER BY b.booking_id;\r
+
+      \r
+
+      \r
+
+      /* Booking count by type */\r
+
+      SELECT\r
+
+      \    booking_type,\r
+
+      \    COUNT(*) AS total_bookings,\r
+
+      \    SUM(total_amount) AS total_amount\r
+
+      FROM Booking\r
+
+      GROUP BY booking_type\r
+
+      ORDER BY booking_type;\r
+
+      \r
+
+      \r
+
+      /* Booking count by status */\r
+
+      SELECT\r
+
+      \    status,\r
+
+      \    COUNT(*) AS total_bookings\r
+
+      FROM Booking\r
+
+      GROUP BY status;\r
+
+      \r
+
+      \r
+
+      /* ============================================================\r
+
+      \   14. TEST HOTEL_BOOKING\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT *\r
+
+      FROM Hotel_Booking\r
+
+      ORDER BY booking_id;\r
+
+      \r
+
+      \r
+
+      /* Hotel booking details */\r
+
+      SELECT\r
+
+      \    hb.booking_id,\r
+
+      \    u.first_name || ' ' || u.last_name AS customer_name,\r
+
+      \    h.name AS hotel_name,\r
+
+      \    r.room_number,\r
+
+      \    r.room_type,\r
+
+      \    hb.check_in_date,\r
+
+      \    hb.check_out_date,\r
+
+      \    hb.number_of_guests,\r
+
+      \    b.total_amount,\r
+
+      \    b.status\r
+
+      FROM Hotel_Booking hb\r
+
+      JOIN Booking b\r
+
+      \    ON hb.booking_id = b.booking_id\r
+
+      JOIN App_User u\r
+
+      \    ON b.user_id = u.user_id\r
+
+      JOIN Room r\r
+
+      \    ON hb.room_id = r.room_id\r
+
+      JOIN Hotel h\r
+
+      \    ON r.hotel_id = h.hotel_id\r
+
+      ORDER BY hb.booking_id;\r
+
+      \r
+
+      \r
+
+      /* ============================================================\r
+
+      \   15. TEST PACKAGE_BOOKING\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT *\r
+
+      FROM Package_Booking\r
+
+      ORDER BY booking_id;\r
+
+      \r
+
+      \r
+
+      /* Package booking details */\r
+
+      SELECT\r
+
+      \    pb.booking_id,\r
+
+      \    u.first_name || ' ' || u.last_name AS customer_name,\r
+
+      \    p.name AS package_name,\r
+
+      \    pb.number_of_people,\r
+
+      \    pb.travel_date,\r
+
+      \    b.total_amount,\r
+
+      \    b.status\r
+
+      FROM Package_Booking pb\r
+
+      JOIN Booking b\r
+
+      \    ON pb.booking_id = b.booking_id\r
+
+      JOIN App_User u\r
+
+      \    ON b.user_id = u.user_id\r
+
+      JOIN Tour_Package p\r
+
+      \    ON pb.package_id = p.package_id\r
+
+      ORDER BY pb.booking_id;\r
+
+      \r
+
+      \r
+
+      /* ============================================================\r
+
+      \   16. TEST ACTIVITY_BOOKING\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT *\r
+
+      FROM Activity_Booking\r
+
+      ORDER BY booking_id;\r
+
+      \r
+
+      \r
+
+      /* Activity booking details */\r
+
+      SELECT\r
+
+      \    ab.booking_id,\r
+
+      \    u.first_name || ' ' || u.last_name AS customer_name,\r
+
+      \    a.name AS activity_name,\r
+
+      \    d.name AS destination,\r
+
+      \    ab.activity_date,\r
+
+      \    ab.number_of_people,\r
+
+      \    b.total_amount,\r
+
+      \    b.status\r
+
+      FROM Activity_Booking ab\r
+
+      JOIN Booking b\r
+
+      \    ON ab.booking_id = b.booking_id\r
+
+      JOIN App_User u\r
+
+      \    ON b.user_id = u.user_id\r
+
+      JOIN Activity a\r
+
+      \    ON ab.activity_id = a.activity_id\r
+
+      JOIN Destination d\r
+
+      \    ON a.destination_id = d.destination_id\r
+
+      ORDER BY ab.booking_id;\r\n"
+    languageId: oracle-sql
+  - kind: 2
+    value: "\r
+
+      /* ============================================================\r
+
+      \   17. TEST TRAVEL_BOOKING\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT *\r
+
+      FROM Travel_Booking\r
+
+      ORDER BY booking_id;\r
+
+      \r
+
+      \r
+
+      /* Travel booking details */\r
+
+      SELECT\r
+
+      \    tb.booking_id,\r
+
+      \    u.first_name || ' ' || u.last_name AS customer_name,\r
+
+      \    d1.name AS origin,\r
+
+      \    d2.name AS destination,\r
+
+      \    ts.transport_type,\r
+
+      \    ts.operator_name,\r
+
+      \    tb.number_of_passengers,\r
+
+      \    b.total_amount,\r
+
+      \    b.status\r
+
+      FROM Travel_Booking tb\r
+
+      JOIN Booking b\r
+
+      \    ON tb.booking_id = b.booking_id\r
+
+      JOIN App_User u\r
+
+      \    ON b.user_id = u.user_id\r
+
+      JOIN Travel_Segment ts\r
+
+      \    ON tb.travel_segment_id = ts.travel_segment_id\r
+
+      JOIN Destination d1\r
+
+      \    ON ts.origin_destination_id = d1.destination_id\r
+
+      JOIN Destination d2\r
+
+      \    ON ts.destination_destination_id = d2.destination_id\r
+
+      ORDER BY tb.booking_id;\r
+
+      \r
+
+      \r
+
+      /* ============================================================\r
+
+      \   18. TEST PAYMENT\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT *\r
+
+      FROM Payment\r
+
+      ORDER BY payment_id;\r
+
+      \r
+
+      \r
+
+      /* Payments with booking and customer */\r
+
+      SELECT\r
+
+      \    p.payment_id,\r
+
+      \    p.transaction_reference,\r
+
+      \    b.booking_id,\r
+
+      \    u.first_name || ' ' || u.last_name AS customer_name,\r
+
+      \    p.amount,\r
+
+      \    p.payment_method,\r
+
+      \    p.payment_date,\r
+
+      \    p.status,\r
+
+      \    p.refund_amount\r
+
+      FROM Payment p\r
+
+      JOIN Booking b\r
+
+      \    ON p.booking_id = b.booking_id\r
+
+      JOIN App_User u\r
+
+      \    ON b.user_id = u.user_id\r
+
+      ORDER BY p.payment_id;\r
+
+      \r
+
+      \r
+
+      /* Payment summary */\r
+
+      SELECT\r
+
+      \    status,\r
+
+      \    COUNT(*) AS payment_count,\r
+
+      \    SUM(amount) AS total_amount,\r
+
+      \    SUM(refund_amount) AS total_refunded\r
+
+      FROM Payment\r
+
+      GROUP BY status;\r
+
+      \r
+
+      \r\n"
+    languageId: oracle-sql
+  - kind: 2
+    value: "/* ============================================================\r
+
+      \   19. TEST REVIEW\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT *\r
+
+      FROM Review\r
+
+      ORDER BY review_id;\r
+
+      \r
+
+      \r
+
+      \r
+
+      \r
+
+      \r
+
+      /* Average rating */\r
+
+      SELECT\r
+
+      \    ROUND(AVG(rating), 2) AS average_rating,\r
+
+      \    COUNT(*) AS total_reviews\r
+
+      FROM Review;\r
+
+      \r
+
+      \r
+
+      /* Rating distribution */\r
+
+      SELECT\r
+
+      \    rating,\r
+
+      \    COUNT(*) AS number_of_reviews\r
+
+      FROM Review\r
+
+      GROUP BY rating\r
+
+      ORDER BY rating;\r
+
+      \r
+
+      /* Reviews with customer/trip information */\r
+
+      SELECT\r
+
+      \    r.review_id,\r
+
+      \    t.trip_id,\r
+
+      \    t.trip_name,\r
+
+      \    u.first_name || ' ' || u.last_name AS customer_name,\r
+
+      \    r.rating,\r
+
+      \    r.comment,\r
+
+      \    r.review_date\r
+
+      FROM Review r\r
+
+      JOIN Trip t\r
+
+      \    ON r.trip_id = t.trip_id\r
+
+      JOIN App_User u\r
+
+      \    ON t.user_id = u.user_id\r
+
+      ORDER BY r.review_id;\r
+
+      \r\n"
+    languageId: oracle-sql
+  - kind: 2
+    value: "/* ============================================================\r
+
+      \   20. TEST AUDIT_LOG\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT *\r
+
+      FROM Audit_Log\r
+
+      ORDER BY audit_id;\r
+
+      \r
+
+      \r
+
+      /* Audit log with user */\r
+
+      SELECT\r
+
+      \    al.audit_id,\r
+
+      \    u.first_name || ' ' || u.last_name AS performed_by,\r
+
+      \    al.action,\r
+
+      \    al.entity_name,\r
+
+      \    al.record_id,\r
+
+      \    al.old_value,\r
+
+      \    al.new_value,\r
+
+      \    al.action_timestamp\r
+
+      FROM Audit_Log al\r
+
+      LEFT JOIN App_User u\r
+
+      \    ON al.user_id = u.user_id\r
+
+      ORDER BY al.audit_id;\r
+
+      \r
+
+      \r
+
+      /* ============================================================\r
+
+      \   21. TEST COMPLETE CUSTOMER → TRIP → BOOKING FLOW\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT\r
+
+      \    u.user_id,\r
+
+      \    u.first_name || ' ' || u.last_name AS customer,\r
+
+      \    t.trip_id,\r
+
+      \    t.trip_name,\r
+
+      \    b.booking_id,\r
+
+      \    b.booking_type,\r
+
+      \    b.total_amount,\r
+
+      \    b.status\r
+
+      FROM App_User u\r
+
+      JOIN Trip t\r
+
+      \    ON u.user_id = t.user_id\r
+
+      LEFT JOIN Booking b\r
+
+      \    ON t.trip_id = b.trip_id\r
+
+      ORDER BY u.user_id, t.trip_id, b.booking_id;\r
+
+      \r
+
+      \r
+
+      /* ============================================================\r
+
+      \   22. TEST HOTEL → ROOM → HOTEL BOOKING FLOW\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT\r
+
+      \    h.hotel_id,\r
+
+      \    h.name AS hotel_name,\r
+
+      \    r.room_id,\r
+
+      \    r.room_number,\r
+
+      \    r.room_type,\r
+
+      \    r.price_per_night,\r
+
+      \    hb.booking_id,\r
+
+      \    hb.check_in_date,\r
+
+      \    hb.check_out_date,\r
+
+      \    hb.number_of_guests\r
+
+      FROM Hotel h\r
+
+      JOIN Room r\r
+
+      \    ON h.hotel_id = r.hotel_id\r
+
+      LEFT JOIN Hotel_Booking hb\r
+
+      \    ON r.room_id = hb.room_id\r
+
+      ORDER BY h.hotel_id, r.room_id;\r
+
+      \r
+
+      \r
+
+      /* ============================================================\r
+
+      \   23. TEST PACKAGE → DESTINATION → ACTIVITY FLOW\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT\r
+
+      \    p.package_id,\r
+
+      \    p.name AS package_name,\r
+
+      \    d.name AS destination,\r
+
+      \    a.name AS activity,\r
+
+      \    pd.visit_order,\r
+
+      \    pd.days,\r
+
+      \    pa.activity_day\r
+
+      FROM Tour_Package p\r
+
+      LEFT JOIN Package_Destination pd\r
+
+      \    ON p.package_id = pd.package_id\r
+
+      LEFT JOIN Destination d\r
+
+      \    ON pd.destination_id = d.destination_id\r
+
+      LEFT JOIN Package_Activity pa\r
+
+      \    ON p.package_id = pa.package_id\r
+
+      LEFT JOIN Activity a\r
+
+      \    ON pa.activity_id = a.activity_id\r
+
+      ORDER BY p.package_id;\r
+
+      \r
+
+      \r
+
+      /* ============================================================\r
+
+      \   24. TEST BOOKING → PAYMENT RELATIONSHIP\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT\r
+
+      \    b.booking_id,\r
+
+      \    b.booking_type,\r
+
+      \    b.total_amount AS booking_amount,\r
+
+      \    b.status AS booking_status,\r
+
+      \    p.payment_id,\r
+
+      \    p.amount AS paid_amount,\r
+
+      \    p.payment_method,\r
+
+      \    p.status AS payment_status,\r
+
+      \    p.refund_amount\r
+
+      FROM Booking b\r
+
+      LEFT JOIN Payment p\r
+
+      \    ON b.booking_id = p.booking_id\r
+
+      ORDER BY b.booking_id;\r
+
+      \r\n"
+    languageId: oracle-sql
+  - kind: 2
+    value: "/* ============================================================\r
+
+      \   25. CHECK FOR BOOKINGS WITHOUT PAYMENT\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT\r
+
+      \    b.booking_id,\r
+
+      \    b.booking_type,\r
+
+      \    b.total_amount,\r
+
+      \    b.status\r
+
+      FROM Booking b\r
+
+      LEFT JOIN Payment p\r
+
+      \    ON b.booking_id = p.booking_id\r
+
+      WHERE p.payment_id IS NULL;\r
+
+      \r
+
+      \r
+
+      /* ============================================================\r
+
+      \   26. CHECK FOR PAYMENTS WITHOUT VALID BOOKING\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT p.*\r
+
+      FROM Payment p\r
+
+      LEFT JOIN Booking b\r
+
+      \    ON p.booking_id = b.booking_id\r
+
+      WHERE b.booking_id IS NULL;\r
+
+      \r
+
+      \r
+
+      /* ============================================================\r
+
+      \   27. CHECK FOR ORPHAN ROOMS\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT r.*\r
+
+      FROM Room r\r
+
+      LEFT JOIN Hotel h\r
+
+      \    ON r.hotel_id = h.hotel_id\r
+
+      WHERE h.hotel_id IS NULL;\r
+
+      \r
+
+      \r
+
+      /* ============================================================\r
+
+      \   28. CHECK FOR ORPHAN ACTIVITIES\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT a.*\r
+
+      FROM Activity a\r
+
+      LEFT JOIN Destination d\r
+
+      \    ON a.destination_id = d.destination_id\r
+
+      WHERE d.destination_id IS NULL;\r
+
+      \r
+
+      \r
+
+      /* ============================================================\r
+
+      \   29. CHECK FOR ORPHAN HOTELS\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT h.*\r
+
+      FROM Hotel h\r
+
+      LEFT JOIN App_User u\r
+
+      \    ON h.owner_id = u.user_id\r
+
+      LEFT JOIN Destination d\r
+
+      \    ON h.destination_id = d.destination_id\r
+
+      WHERE u.user_id IS NULL\r
+
+      \   OR d.destination_id IS NULL; \r\n"
+    languageId: oracle-sql
+  - kind: 2
+    value: "/* ============================================================\r
+
+      \   30. CHECK BOOKING SUBTYPE CONSISTENCY\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      /* HOTEL bookings should exist in Hotel_Booking */\r
+
+      SELECT b.booking_id\r
+
+      FROM Booking b\r
+
+      LEFT JOIN Hotel_Booking hb\r
+
+      \    ON b.booking_id = hb.booking_id\r
+
+      WHERE b.booking_type = 'HOTEL'\r
+
+      AND hb.booking_id IS NULL;\r
+
+      \r
+
+      \r
+
+      /* PACKAGE bookings should exist in Package_Booking */\r
+
+      SELECT b.booking_id\r
+
+      FROM Booking b\r
+
+      LEFT JOIN Package_Booking pb\r
+
+      \    ON b.booking_id = pb.booking_id\r
+
+      WHERE b.booking_type = 'PACKAGE'\r
+
+      AND pb.booking_id IS NULL;\r
+
+      \r
+
+      \r
+
+      /* ACTIVITY bookings should exist in Activity_Booking */\r
+
+      SELECT b.booking_id\r
+
+      FROM Booking b\r
+
+      LEFT JOIN Activity_Booking ab\r
+
+      \    ON b.booking_id = ab.booking_id\r
+
+      WHERE b.booking_type = 'ACTIVITY'\r
+
+      AND ab.booking_id IS NULL;\r
+
+      \r
+
+      \r
+
+      /* TRAVEL bookings should exist in Travel_Booking */\r
+
+      SELECT b.booking_id\r
+
+      FROM Booking b\r
+
+      LEFT JOIN Travel_Booking tb\r
+
+      \    ON b.booking_id = tb.booking_id\r
+
+      WHERE b.booking_type = 'TRAVEL'\r
+
+      AND tb.booking_id IS NULL;\r
+
+      \r
+
+      \r
+
+      /* ============================================================\r
+
+      \   31. REVENUE TEST\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT\r
+
+      \    SUM(total_amount) AS total_booking_revenue\r
+
+      FROM Booking\r
+
+      WHERE status <> 'CANCELLED';\r
+
+      \r
+
+      \r
+
+      /* Revenue by booking type */\r
+
+      SELECT\r
+
+      \    booking_type,\r
+
+      \    COUNT(*) AS number_of_bookings,\r
+
+      \    SUM(total_amount) AS revenue\r
+
+      FROM Booking\r
+
+      WHERE status <> 'CANCELLED'\r
+
+      GROUP BY booking_type\r
+
+      ORDER BY booking_type;\r
+
+      \r
+
+      \r
+
+      /* ============================================================\r
+
+      \   32. CUSTOMER BOOKING SUMMARY\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT\r
+
+      \    u.user_id,\r
+
+      \    u.first_name || ' ' || u.last_name AS customer_name,\r
+
+      \    COUNT(b.booking_id) AS total_bookings,\r
+
+      \    NVL(SUM(b.total_amount), 0) AS total_spent\r
+
+      FROM App_User u\r
+
+      LEFT JOIN Booking b\r
+
+      \    ON u.user_id = b.user_id\r
+
+      GROUP BY\r
+
+      \    u.user_id,\r
+
+      \    u.first_name,\r
+
+      \    u.last_name\r
+
+      ORDER BY total_spent DESC;\r
+
+      \r
+
+      \r
+
+      /* ============================================================\r
+
+      \   33. HOTEL BOOKING SUMMARY\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT\r
+
+      \    h.hotel_id,\r
+
+      \    h.name AS hotel_name,\r
+
+      \    COUNT(hb.booking_id) AS total_hotel_bookings\r
+
+      FROM Hotel h\r
+
+      LEFT JOIN Room r\r
+
+      \    ON h.hotel_id = r.hotel_id\r
+
+      LEFT JOIN Hotel_Booking hb\r
+
+      \    ON r.room_id = hb.room_id\r
+
+      GROUP BY h.hotel_id, h.name\r
+
+      ORDER BY total_hotel_bookings DESC;\r
+
+      \r
+
+      \r
+
+      /* ============================================================\r
+
+      \   34. ACTIVITY BOOKING SUMMARY\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT\r
+
+      \    a.activity_id,\r
+
+      \    a.name AS activity_name,\r
+
+      \    COUNT(ab.booking_id) AS total_bookings,\r
+
+      \    NVL(SUM(ab.number_of_people), 0) AS total_people\r
+
+      FROM Activity a\r
+
+      LEFT JOIN Activity_Booking ab\r
+
+      \    ON a.activity_id = ab.activity_id\r
+
+      GROUP BY a.activity_id, a.name\r
+
+      ORDER BY total_bookings DESC;\r
+
+      \r
+
+      \r\n"
+    languageId: oracle-sql
+  - kind: 2
+    value: ""
+    languageId: oracle-sql
+  - kind: 2
+    value: "/* ============================================================\r
+
+      \   35. PACKAGE BOOKING SUMMARY\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT\r
+
+      \    p.package_id,\r
+
+      \    p.name AS package_name,\r
+
+      \    COUNT(pb.booking_id) AS total_bookings,\r
+
+      \    NVL(SUM(pb.number_of_people), 0) AS total_people\r
+
+      FROM Tour_Package p\r
+
+      LEFT JOIN Package_Booking pb\r
+
+      \    ON p.package_id = pb.package_id\r
+
+      GROUP BY p.package_id, p.name\r
+
+      ORDER BY total_bookings DESC;\r
+
+      \r
+
+      \r
+
+      /* ============================================================\r
+
+      \   36. FINAL DATABASE CHECK\r
+
+      \   ============================================================ */\r
+
+      \r
+
+      SELECT\r
+
+      \    (SELECT COUNT(*) FROM App_User) AS USERS,\r
+
+      \    (SELECT COUNT(*) FROM Destination) AS DESTINATIONS,\r
+
+      \    (SELECT COUNT(*) FROM Hotel) AS HOTELS,\r
+
+      \    (SELECT COUNT(*) FROM Room) AS ROOMS,\r
+
+      \    (SELECT COUNT(*) FROM Activity) AS ACTIVITIES,\r
+
+      \    (SELECT COUNT(*) FROM Tour_Package) AS PACKAGES,\r
+
+      \    (SELECT COUNT(*) FROM Travel_Segment) AS TRAVEL_SEGMENTS,\r
+
+      \    (SELECT COUNT(*) FROM Trip) AS TRIPS,\r
+
+      \    (SELECT COUNT(*) FROM Trip_Destination) AS TRIP_DESTINATIONS,\r
+
+      \    (SELECT COUNT(*) FROM Package_Destination) AS PACKAGE_DESTINATIONS,\r
+
+      \    (SELECT COUNT(*) FROM Package_Activity) AS PACKAGE_ACTIVITIES,\r
+
+      \    (SELECT COUNT(*) FROM Booking) AS BOOKINGS,\r
+
+      \    (SELECT COUNT(*) FROM Hotel_Booking) AS HOTEL_BOOKINGS,\r
+
+      \    (SELECT COUNT(*) FROM Package_Booking) AS PACKAGE_BOOKINGS,\r
+
+      \    (SELECT COUNT(*) FROM Activity_Booking) AS ACTIVITY_BOOKINGS,\r
+
+      \    (SELECT COUNT(*) FROM Travel_Booking) AS TRAVEL_BOOKINGS,\r
+
+      \    (SELECT COUNT(*) FROM Payment) AS PAYMENTS,\r
+
+      \    (SELECT COUNT(*) FROM Review) AS REVIEWS,\r
+
+      \    (SELECT COUNT(*) FROM Audit_Log) AS AUDIT_LOGS\r
+
+      FROM dual;\r
+
+      \r
+
+      \r
+
+      /* ============================================================\r
+
+      \   END OF TESTING\r
+
+      \   ============================================================ */"
+    languageId: oracle-sql
+  - kind: 2
+    value: "/* Reviews with customer/trip information */\r
+
+      \r
+
+      SELECT\r
+
+      \    r.review_id,\r
+
+      \    t.trip_id,\r
+
+      \    t.trip_name,\r
+
+      \    u.first_name || ' ' || u.last_name AS customer_name,\r
+
+      \    r.rating,\r
+
+      \    r.USER_COMMENT,\r
+
+      \    r.review_date\r
+
+      FROM Review r\r
+
+      JOIN Trip t\r
+
+      \    ON r.trip_id = t.trip_id\r
+
+      JOIN App_User u\r
+
+      \    ON t.user_id = u.user_id\r
+
+      ORDER BY r.review_id;"
+    languageId: oracle-sql
