@@ -999,3 +999,278 @@ cells:
       SELECT * FROM Package_Activity;
       SELECT * FROM Review;
     languageId: oracle-sql
+  - kind: 2
+    value: "-- Booking 1: HOTEL booking by user 1 (Priya) for trip 1\r
+
+      INSERT INTO Booking (booking_id, user_id, trip_id, booking_type,
+      total_amount, status)\r
+
+      VALUES (SEQ_BOOKING.NEXTVAL, 1, 1, 'HOTEL', 14000.00, 'CONFIRMED');\r
+
+      \r
+
+      -- Booking 2: HOTEL booking by user 2 (Arjun) for trip 2\r
+
+      INSERT INTO Booking (booking_id, user_id, trip_id, booking_type,
+      total_amount, status)\r
+
+      VALUES (SEQ_BOOKING.NEXTVAL, 2, 2, 'HOTEL', 7500.00, 'CONFIRMED');\r
+
+      \r
+
+      -- Booking 3: PACKAGE booking by user 1 (Priya) for trip 1\r
+
+      INSERT INTO Booking (booking_id, user_id, trip_id, booking_type,
+      total_amount, status)\r
+
+      VALUES (SEQ_BOOKING.NEXTVAL, 1, 1, 'PACKAGE', 25000.00, 'CONFIRMED');\r
+
+      \r
+
+      -- Booking 4: ACTIVITY booking by user 2 (Arjun) for trip 2\r
+
+      INSERT INTO Booking (booking_id, user_id, trip_id, booking_type,
+      total_amount, status)\r
+
+      VALUES (SEQ_BOOKING.NEXTVAL, 2, 2, 'ACTIVITY', 2400.00, 'PENDING');\r
+
+      \r
+
+      -- Booking 5: TRAVEL booking by user 1 (Priya) for trip 1\r
+
+      INSERT INTO Booking (booking_id, user_id, trip_id, booking_type,
+      total_amount, status, cancelled_at)\r
+
+      VALUES (SEQ_BOOKING.NEXTVAL, 1, 1, 'TRAVEL', 500.00, 'CANCELLED',
+      CURRENT_TIMESTAMP);\r
+
+      \r
+
+      select * from booking"
+    languageId: oracle-sql
+  - kind: 2
+    value: "-- Child of Booking 1: Priya books room 101 at Grand Palace Hotel\r
+
+      INSERT INTO Hotel_Booking (booking_id, room_id, check_in_date,
+      check_out_date, number_of_guests)\r
+
+      VALUES (1, 1, DATE '2026-10-10', DATE '2026-10-15', 2);\r
+
+      \r
+
+      -- Child of Booking 2: Arjun books room 201 at Royal Mysore Hotel\r
+
+      INSERT INTO Hotel_Booking (booking_id, room_id, check_in_date,
+      check_out_date, number_of_guests)\r
+
+      VALUES (2, 3, DATE '2026-11-01', DATE '2026-11-05', 2);\r
+
+      \r
+
+      -- Child of Booking 5 (cancelled travel booking doesn't need a hotel
+      child)\r
+
+      -- So instead, let's add a third hotel booking on a new booking\r
+
+      INSERT INTO Booking (booking_id, user_id, trip_id, booking_type,
+      total_amount, status)\r
+
+      VALUES (SEQ_BOOKING.NEXTVAL, 2, 2, 'HOTEL', 15000.00, 'CONFIRMED');\r
+
+      \r
+
+      INSERT INTO Hotel_Booking (booking_id, room_id, check_in_date,
+      check_out_date, number_of_guests)\r
+
+      VALUES (SEQ_BOOKING.CURRVAL, 4, DATE '2026-12-20', DATE '2026-12-25', 3);"
+    languageId: oracle-sql
+  - kind: 2
+    value: select * from hotel_booking;
+    languageId: oracle-sql
+  - kind: 2
+    value: "-- Child of Booking 3: Priya books package 1 (Karnataka Heritage Tour)
+      for 2 people\r
+
+      INSERT INTO Package_Booking (booking_id, package_id, number_of_people,
+      travel_date)\r
+
+      VALUES (3, 1, 2, DATE '2026-10-10');\r
+
+      \r
+
+      -- Add another package booking\r
+
+      INSERT INTO Booking (booking_id, user_id, trip_id, booking_type,
+      total_amount, status)\r
+
+      VALUES (SEQ_BOOKING.NEXTVAL, 2, 2, 'PACKAGE', 15000.00, 'CONFIRMED');\r
+
+      \r
+
+      INSERT INTO Package_Booking (booking_id, package_id, number_of_people,
+      travel_date)\r
+
+      VALUES (SEQ_BOOKING.CURRVAL, 2, 1, DATE '2026-11-01');\r
+
+      \r
+
+      select * from package_booking;"
+    languageId: oracle-sql
+  - kind: 2
+    value: "-- Child of Booking 4: Arjun books activity 3 (Beach Water Sports) for 2
+      people\r
+
+      INSERT INTO Activity_Booking (booking_id, activity_id, activity_date,
+      number_of_people)\r
+
+      VALUES (4, 3, DATE '2026-11-03', 2);\r
+
+      \r
+
+      -- Add another activity booking\r
+
+      INSERT INTO Booking (booking_id, user_id, trip_id, booking_type,
+      total_amount, status)\r
+
+      VALUES (SEQ_BOOKING.NEXTVAL, 1, 1, 'ACTIVITY', 500.00, 'CONFIRMED');\r
+
+      \r
+
+      INSERT INTO Activity_Booking (booking_id, activity_id, activity_date,
+      number_of_people)\r
+
+      VALUES (SEQ_BOOKING.CURRVAL, 1, DATE '2026-10-11', 1);\r
+
+      \r
+
+      select * from activity_booking;"
+    languageId: oracle-sql
+  - kind: 2
+    value: "-- Child of Booking 5: Priya books travel segment 1 (Bangalore → Mysuru
+      bus)\r
+
+      INSERT INTO Travel_Booking (booking_id, travel_segment_id,
+      number_of_passengers)\r
+
+      VALUES (5, 1, 1);\r
+
+      \r
+
+      -- Add another travel booking\r
+
+      INSERT INTO Booking (booking_id, user_id, trip_id, booking_type,
+      total_amount, status)\r
+
+      VALUES (SEQ_BOOKING.NEXTVAL, 2, 2, 'TRAVEL', 1200.00, 'CONFIRMED');\r
+
+      \r
+
+      INSERT INTO Travel_Booking (booking_id, travel_segment_id,
+      number_of_passengers)\r
+
+      VALUES (SEQ_BOOKING.CURRVAL, 3, 2);\r
+
+      \r
+
+      select * from travel_booking;"
+    languageId: oracle-sql
+  - kind: 2
+    value: "-- Payment for Booking 1 (Hotel, Priya) — full payment\r
+
+      INSERT INTO Payment (payment_id, booking_id, transaction_reference,
+      amount, payment_method, status)\r
+
+      VALUES (SEQ_PAYMENT.NEXTVAL, 1, 'TXN-2026-0001', 14000.00, 'UPI',
+      'SUCCESS');\r
+
+      \r
+
+      -- Payment for Booking 2 (Hotel, Arjun) — full payment\r
+
+      INSERT INTO Payment (payment_id, booking_id, transaction_reference,
+      amount, payment_method, status)\r
+
+      VALUES (SEQ_PAYMENT.NEXTVAL, 2, 'TXN-2026-0002', 7500.00, 'CREDIT_CARD',
+      'SUCCESS');\r
+
+      \r
+
+      -- Payment for Booking 3 (Package, Priya) — full payment\r
+
+      INSERT INTO Payment (payment_id, booking_id, transaction_reference,
+      amount, payment_method, status)\r
+
+      VALUES (SEQ_PAYMENT.NEXTVAL, 3, 'TXN-2026-0003', 25000.00, 'NET_BANKING',
+      'SUCCESS');\r
+
+      \r
+
+      -- Payment for Booking 4 (Activity, Arjun) — pending\r
+
+      INSERT INTO Payment (payment_id, booking_id, transaction_reference,
+      amount, payment_method, status)\r
+
+      VALUES (SEQ_PAYMENT.NEXTVAL, 4, 'TXN-2026-0004', 2400.00, 'WALLET',
+      'PENDING');\r
+
+      \r
+
+      -- Refund for Booking 5 (cancelled travel, Priya)\r
+
+      INSERT INTO Payment (payment_id, booking_id, transaction_reference,
+      amount, payment_method, status, refund_amount)\r
+
+      VALUES (SEQ_PAYMENT.NEXTVAL, 5, 'TXN-2026-0005', 500.00, 'DEBIT_CARD',
+      'REFUNDED', 500.00);\r
+
+      \r
+
+      select * from payment;"
+    languageId: oracle-sql
+  - kind: 2
+    value: "INSERT INTO Audit_Log (audit_id, user_id, action, entity_name,
+      record_id, new_value)\r
+
+      VALUES (SEQ_AUDIT_LOG.NEXTVAL, 1, 'INSERT', 'Booking', 1,
+      '{\"booking_type\":\"HOTEL\",\"amount\":14000}');\r
+
+      \r
+
+      INSERT INTO Audit_Log (audit_id, user_id, action, entity_name, record_id,
+      new_value)\r
+
+      VALUES (SEQ_AUDIT_LOG.NEXTVAL, 2, 'INSERT', 'Booking', 2,
+      '{\"booking_type\":\"HOTEL\",\"amount\":7500}');\r
+
+      \r
+
+      INSERT INTO Audit_Log (audit_id, user_id, action, entity_name, record_id,
+      new_value)\r
+
+      VALUES (SEQ_AUDIT_LOG.NEXTVAL, 1, 'PAY', 'Payment', 1,
+      '{\"amount\":14000,\"method\":\"UPI\"}');\r
+
+      \r
+
+      INSERT INTO Audit_Log (audit_id, user_id, action, entity_name, record_id,
+      old_value, new_value)\r
+
+      VALUES (SEQ_AUDIT_LOG.NEXTVAL, 1, 'CANCEL', 'Booking', 5,\r
+
+      \        '{\"status\":\"CONFIRMED\"}', '{\"status\":\"CANCELLED\"}');\r
+
+      \r
+
+      INSERT INTO Audit_Log (audit_id, user_id, action, entity_name, record_id,
+      new_value)\r
+
+      VALUES (SEQ_AUDIT_LOG.NEXTVAL, 2, 'INSERT', 'Payment', 4,
+      '{\"amount\":2400,\"method\":\"WALLET\"}');\r
+
+      \r
+
+      select * from audit_log;"
+    languageId: oracle-sql
+  - kind: 2
+    value: commit;
+    languageId: oracle-sql
