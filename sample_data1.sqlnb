@@ -871,3 +871,131 @@ cells:
 
       SELECT * FROM Travel_Segment;"
     languageId: oracle-sql
+  - kind: 2
+    value: >
+      -- 1. Insert into Trip
+
+      -- Using user_id 1 and 2 from APP_USER
+
+      INSERT INTO Trip (user_id, trip_name, start_date, end_date, status) 
+
+      VALUES (1, 'Summer Bangalore Visit', DATE '2026-10-10', DATE '2026-10-15',
+      'PLANNED');
+
+
+      INSERT INTO Trip (user_id, trip_name, start_date, end_date, status) 
+
+      VALUES (2, 'Goa Weekend Retreat', DATE '2026-11-01', DATE '2026-11-05',
+      'CONFIRMED');
+
+
+
+      -- 2. Insert into Trip_Destination
+
+      -- Linking trips to destinations 1 (Bangalore), 2 (Mysuru), and 3 (Goa)
+
+      INSERT INTO Trip_Destination (trip_id, destination_id, visit_order,
+      arrival_date, departure_date) 
+
+      VALUES (1, 1, 1, DATE '2026-10-10', DATE '2026-10-12');
+
+
+      INSERT INTO Trip_Destination (trip_id, destination_id, visit_order,
+      arrival_date, departure_date) 
+
+      VALUES (1, 2, 2, DATE '2026-10-12', DATE '2026-10-15');
+
+
+      INSERT INTO Trip_Destination (trip_id, destination_id, visit_order,
+      arrival_date, departure_date) 
+
+      VALUES (2, 3, 1, DATE '2026-11-01', DATE '2026-11-05');
+
+
+
+      -- 3. Insert into Tour_Package
+
+      INSERT INTO Tour_Package (name, description, duration_days, price,
+      max_capacity, status) 
+
+      VALUES ('Karnataka Heritage Tour', 'A complete tour of royal palaces', 5,
+      12500.00, 20, 'ACTIVE');
+
+
+      INSERT INTO Tour_Package (name, description, duration_days, price,
+      max_capacity, status) 
+
+      VALUES ('Coastal Adventure', 'Water sports and beach relaxation', 4,
+      15000.00, 15, 'ACTIVE');
+
+
+
+      -- 4. Insert into Package_Destination
+
+      -- Linking packages to destinations
+
+      INSERT INTO Package_Destination (package_id, destination_id, visit_order,
+      days) 
+
+      VALUES (1, 1, 1, 2);
+
+
+      INSERT INTO Package_Destination (package_id, destination_id, visit_order,
+      days) 
+
+      VALUES (1, 2, 2, 3);
+
+
+      INSERT INTO Package_Destination (package_id, destination_id, visit_order,
+      days) 
+
+      VALUES (2, 3, 1, 4);
+
+
+
+      -- 5. Insert into Package_Activity
+
+      -- Linking packages to activities 1, 2, and 3 from the ACTIVITY table
+
+      INSERT INTO Package_Activity (package_id, activity_id, activity_day) 
+
+      VALUES (1, 1, 2);
+
+
+      INSERT INTO Package_Activity (package_id, activity_id, activity_day) 
+
+      VALUES (1, 2, 4);
+
+
+      INSERT INTO Package_Activity (package_id, activity_id, activity_day) 
+
+      VALUES (2, 3, 2);
+
+
+
+      -- 6. Insert into Review
+
+      -- Adding a review for the trip (Rating constrained between 1 and 5)
+
+      -- 6. Insert into Review (Corrected)
+    languageId: oracle-sql
+  - kind: 2
+    value: |-
+      INSERT INTO Review (trip_id, rating, USER_COMMENT) 
+      VALUES (1, 5, 'Excellent trip, well organized!');
+
+      INSERT INTO Review (trip_id, rating, USER_COMMENT) 
+      VALUES (2, 4, 'Great beaches, but slightly crowded.');
+    languageId: oracle-sql
+  - kind: 2
+    value: COMMIT;
+    languageId: oracle-sql
+  - kind: 2
+    value: |-
+      SELECT * FROM Trip;
+      SELECT * FROM Trip_Destination;
+      SELECT * FROM Tour_Package;
+      SELECT * FROM Package_Destination;
+      SELECT * FROM Package_Activity;
+      SELECT * FROM Review;
+    languageId: oracle-sql
