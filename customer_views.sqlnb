@@ -1,0 +1,729 @@
+cells:
+  - kind: 2
+    value: "-- ============================================================\r
+
+      -- VIEW 1: Customer's own profile summary\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE VIEW vw_customer_profile AS\r
+
+      SELECT \r
+
+      \    user_id,\r
+
+      \    first_name || ' ' || last_name AS full_name,\r
+
+      \    email,\r
+
+      \    phone,\r
+
+      \    role,\r
+
+      \    status,\r
+
+      \    created_at\r
+
+      FROM App_User\r
+
+      WHERE role = 'CUSTOMER';\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- VIEW 2: Available hotels with destination info\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE VIEW vw_available_hotels AS\r
+
+      SELECT \r
+
+      \    h.hotel_id,\r
+
+      \    h.name AS hotel_name,\r
+
+      \    h.description,\r
+
+      \    h.address,\r
+
+      \    h.contact_number,\r
+
+      \    h.email AS hotel_email,\r
+
+      \    h.star_rating,\r
+
+      \    h.status AS hotel_status,\r
+
+      \    d.destination_id,\r
+
+      \    d.name AS destination_name,\r
+
+      \    d.city,\r
+
+      \    d.state,\r
+
+      \    d.country\r
+
+      FROM Hotel h\r
+
+      JOIN Destination d ON h.destination_id = d.destination_id\r
+
+      WHERE h.status = 'ACTIVE';\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- VIEW 3: Available rooms with hotel details\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE VIEW vw_available_rooms AS\r
+
+      SELECT \r
+
+      \    r.room_id,\r
+
+      \    r.room_number,\r
+
+      \    r.room_type,\r
+
+      \    r.capacity,\r
+
+      \    r.price_per_night,\r
+
+      \    r.status AS room_status,\r
+
+      \    h.hotel_id,\r
+
+      \    h.name AS hotel_name,\r
+
+      \    h.star_rating,\r
+
+      \    d.name AS destination_name,\r
+
+      \    d.city,\r
+
+      \    d.country\r
+
+      FROM Room r\r
+
+      JOIN Hotel h ON r.hotel_id = h.hotel_id\r
+
+      JOIN Destination d ON h.destination_id = d.destination_id\r
+
+      WHERE r.status = 'AVAILABLE'\r
+
+      \  AND h.status = 'ACTIVE';\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- VIEW 4: Available activities with destination\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE VIEW vw_available_activities AS\r
+
+      SELECT \r
+
+      \    a.activity_id,\r
+
+      \    a.name AS activity_name,\r
+
+      \    a.description,\r
+
+      \    a.category,\r
+
+      \    a.duration_hours,\r
+
+      \    a.price,\r
+
+      \    a.capacity,\r
+
+      \    a.status,\r
+
+      \    d.destination_id,\r
+
+      \    d.name AS destination_name,\r
+
+      \    d.city,\r
+
+      \    d.country\r
+
+      FROM Activity a\r
+
+      JOIN Destination d ON a.destination_id = d.destination_id\r
+
+      WHERE a.status = 'ACTIVE';\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- VIEW 5: Active tour packages with destinations & activities\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE VIEW vw_active_tour_packages AS\r
+
+      SELECT \r
+
+      \    tp.package_id,\r
+
+      \    tp.name AS package_name,\r
+
+      \    tp.description,\r
+
+      \    tp.duration_days,\r
+
+      \    tp.price,\r
+
+      \    tp.max_capacity,\r
+
+      \    tp.status,\r
+
+      \    (SELECT LISTAGG(DISTINCT d.name, ', ') \r
+
+      \            WITHIN GROUP (ORDER BY d.name)\r
+
+      \     FROM Package_Destination pd\r
+
+      \     JOIN Destination d ON pd.destination_id = d.destination_id\r
+
+      \     WHERE pd.package_id = tp.package_id) AS destinations,\r
+
+      \    (SELECT LISTAGG(DISTINCT a.name, ', ') \r
+
+      \            WITHIN GROUP (ORDER BY a.name)\r
+
+      \     FROM Package_Activity pa\r
+
+      \     JOIN Activity a ON pa.activity_id = a.activity_id\r
+
+      \     WHERE pa.package_id = tp.package_id) AS activities\r
+
+      FROM Tour_Package tp\r
+
+      WHERE tp.status = 'ACTIVE';\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- VIEW 6: Scheduled travel segments with route info\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE VIEW vw_scheduled_travel AS\r
+
+      SELECT \r
+
+      \    ts.travel_segment_id,\r
+
+      \    ts.transport_type,\r
+
+      \    ts.operator_name,\r
+
+      \    ts.departure_time,\r
+
+      \    ts.arrival_time,\r
+
+      \    ts.price,\r
+
+      \    ts.capacity,\r
+
+      \    ts.status,\r
+
+      \    od.name AS origin_name,\r
+
+      \    od.city AS origin_city,\r
+
+      \    dd.name AS destination_name,\r
+
+      \    dd.city AS destination_city\r
+
+      FROM Travel_Segment ts\r
+
+      JOIN Destination od ON ts.origin_destination_id = od.destination_id\r
+
+      JOIN Destination dd ON ts.destination_destination_id = dd.destination_id\r
+
+      WHERE ts.status = 'SCHEDULED';\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- VIEW 7: Customer's own bookings (all types)\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE VIEW vw_customer_bookings AS\r
+
+      SELECT \r
+
+      \    b.booking_id,\r
+
+      \    b.booking_type,\r
+
+      \    b.booking_date,\r
+
+      \    b.total_amount,\r
+
+      \    b.status AS booking_status,\r
+
+      \    b.cancelled_at,\r
+
+      \    b.user_id,\r
+
+      \    u.first_name || ' ' || u.last_name AS customer_name,\r
+
+      \    b.trip_id,\r
+
+      \    t.trip_name,\r
+
+      \    t.start_date AS trip_start,\r
+
+      \    t.end_date AS trip_end\r
+
+      FROM Booking b\r
+
+      JOIN App_User u ON b.user_id = u.user_id\r
+
+      LEFT JOIN Trip t ON b.trip_id = t.trip_id;\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- VIEW 8: Customer's hotel booking details\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE VIEW vw_customer_hotel_bookings AS\r
+
+      SELECT \r
+
+      \    b.booking_id,\r
+
+      \    b.user_id,\r
+
+      \    b.booking_date,\r
+
+      \    b.total_amount,\r
+
+      \    b.status AS booking_status,\r
+
+      \    hb.check_in_date,\r
+
+      \    hb.check_out_date,\r
+
+      \    hb.number_of_guests,\r
+
+      \    r.room_number,\r
+
+      \    r.room_type,\r
+
+      \    r.price_per_night,\r
+
+      \    h.name AS hotel_name,\r
+
+      \    h.star_rating,\r
+
+      \    h.address AS hotel_address,\r
+
+      \    d.name AS destination_name,\r
+
+      \    d.city\r
+
+      FROM Booking b\r
+
+      JOIN Hotel_Booking hb ON b.booking_id = hb.booking_id\r
+
+      JOIN Room r ON hb.room_id = r.room_id\r
+
+      JOIN Hotel h ON r.hotel_id = h.hotel_id\r
+
+      JOIN Destination d ON h.destination_id = d.destination_id\r
+
+      WHERE b.booking_type = 'HOTEL';\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- VIEW 9: Customer's package booking details\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE VIEW vw_customer_package_bookings AS\r
+
+      SELECT \r
+
+      \    b.booking_id,\r
+
+      \    b.user_id,\r
+
+      \    b.booking_date,\r
+
+      \    b.total_amount,\r
+
+      \    b.status AS booking_status,\r
+
+      \    pb.number_of_people,\r
+
+      \    pb.travel_date,\r
+
+      \    tp.package_id,\r
+
+      \    tp.name AS package_name,\r
+
+      \    tp.duration_days,\r
+
+      \    tp.price AS package_price\r
+
+      FROM Booking b\r
+
+      JOIN Package_Booking pb ON b.booking_id = pb.booking_id\r
+
+      JOIN Tour_Package tp ON pb.package_id = tp.package_id\r
+
+      WHERE b.booking_type = 'PACKAGE';\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- VIEW 10: Customer's activity booking details\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE VIEW vw_customer_activity_bookings AS\r
+
+      SELECT \r
+
+      \    b.booking_id,\r
+
+      \    b.user_id,\r
+
+      \    b.booking_date,\r
+
+      \    b.total_amount,\r
+
+      \    b.status AS booking_status,\r
+
+      \    ab.activity_date,\r
+
+      \    ab.number_of_people,\r
+
+      \    a.activity_id,\r
+
+      \    a.name AS activity_name,\r
+
+      \    a.category,\r
+
+      \    a.duration_hours,\r
+
+      \    d.name AS destination_name,\r
+
+      \    d.city\r
+
+      FROM Booking b\r
+
+      JOIN Activity_Booking ab ON b.booking_id = ab.booking_id\r
+
+      JOIN Activity a ON ab.activity_id = a.activity_id\r
+
+      JOIN Destination d ON a.destination_id = d.destination_id\r
+
+      WHERE b.booking_type = 'ACTIVITY';\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- VIEW 11: Customer's travel booking details\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE VIEW vw_customer_travel_bookings AS\r
+
+      SELECT \r
+
+      \    b.booking_id,\r
+
+      \    b.user_id,\r
+
+      \    b.booking_date,\r
+
+      \    b.total_amount,\r
+
+      \    b.status AS booking_status,\r
+
+      \    tb.number_of_passengers,\r
+
+      \    ts.transport_type,\r
+
+      \    ts.operator_name,\r
+
+      \    ts.departure_time,\r
+
+      \    ts.arrival_time,\r
+
+      \    od.name AS origin_name,\r
+
+      \    od.city AS origin_city,\r
+
+      \    dd.name AS destination_name,\r
+
+      \    dd.city AS destination_city\r
+
+      FROM Booking b\r
+
+      JOIN Travel_Booking tb ON b.booking_id = tb.booking_id\r
+
+      JOIN Travel_Segment ts ON tb.travel_segment_id = ts.travel_segment_id\r
+
+      JOIN Destination od ON ts.origin_destination_id = od.destination_id\r
+
+      JOIN Destination dd ON ts.destination_destination_id = dd.destination_id\r
+
+      WHERE b.booking_type = 'TRAVEL';\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- VIEW 12: Customer's payment history\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE VIEW vw_customer_payments AS\r
+
+      SELECT \r
+
+      \    p.payment_id,\r
+
+      \    p.booking_id,\r
+
+      \    b.booking_type,\r
+
+      \    p.transaction_reference,\r
+
+      \    p.amount,\r
+
+      \    p.payment_method,\r
+
+      \    p.payment_date,\r
+
+      \    p.status AS payment_status,\r
+
+      \    p.refund_amount,\r
+
+      \    b.user_id\r
+
+      FROM Payment p\r
+
+      JOIN Booking b ON p.booking_id = b.booking_id;\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- VIEW 13: Customer's trips with destinations\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE VIEW vw_customer_trips AS\r
+
+      SELECT \r
+
+      \    t.trip_id,\r
+
+      \    t.user_id,\r
+
+      \    t.trip_name,\r
+
+      \    t.start_date,\r
+
+      \    t.end_date,\r
+
+      \    t.status AS trip_status,\r
+
+      \    t.created_at,\r
+
+      \    LISTAGG(d.name, ' -> ') \r
+
+      \        WITHIN GROUP (ORDER BY td.visit_order) AS route\r
+
+      FROM Trip t\r
+
+      LEFT JOIN Trip_Destination td ON t.trip_id = td.trip_id\r
+
+      LEFT JOIN Destination d ON td.destination_id = d.destination_id\r
+
+      GROUP BY t.trip_id, t.user_id, t.trip_name, t.start_date, \r
+
+      \         t.end_date, t.status, t.created_at;\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- VIEW 14: Customer's reviews\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE VIEW vw_customer_reviews AS\r
+
+      SELECT \r
+
+      \    r.review_id,\r
+
+      \    r.trip_id,\r
+
+      \    t.trip_name,\r
+
+      \    r.rating,\r
+
+      \    r.user_comment,\r
+
+      \    r.review_date,\r
+
+      \    t.user_id\r
+
+      FROM Review r\r
+
+      JOIN Trip t ON r.trip_id = t.trip_id;\r
+
+      \r
+
+      -- ============================================================\r
+
+      -- VIEW 15: Booking summary with payment status\r
+
+      -- ============================================================\r
+
+      CREATE OR REPLACE VIEW vw_booking_payment_summary AS\r
+
+      SELECT \r
+
+      \    b.booking_id,\r
+
+      \    b.user_id,\r
+
+      \    b.booking_type,\r
+
+      \    b.total_amount,\r
+
+      \    b.status AS booking_status,\r
+
+      \    b.booking_date,\r
+
+      \    p.payment_id,\r
+
+      \    p.transaction_reference,\r
+
+      \    p.amount AS paid_amount,\r
+
+      \    p.status AS payment_status,\r
+
+      \    p.refund_amount\r
+
+      FROM Booking b\r
+
+      LEFT JOIN Payment p ON b.booking_id = p.booking_id;"
+    languageId: oracle-sql
+  - kind: 2
+    value: "-- Customer profile\r
+
+      SELECT * FROM vw_customer_profile;\r
+
+      \r
+
+      -- Available hotels\r
+
+      SELECT * FROM vw_available_hotels;\r
+
+      \r
+
+      -- Available rooms\r
+
+      SELECT * FROM vw_available_rooms;\r
+
+      \r
+
+      -- Available activities\r
+
+      SELECT * FROM vw_available_activities;\r
+
+      \r
+
+      -- Active tour packages\r
+
+      SELECT * FROM vw_active_tour_packages;\r
+
+      \r
+
+      -- Scheduled travel\r
+
+      SELECT * FROM vw_scheduled_travel;\r
+
+      \r
+
+      -- Customer bookings\r
+
+      SELECT * FROM vw_customer_bookings;\r
+
+      \r
+
+      -- Customer hotel bookings\r
+
+      SELECT * FROM vw_customer_hotel_bookings;\r
+
+      \r
+
+      -- Customer package bookings\r
+
+      SELECT * FROM vw_customer_package_bookings;\r
+
+      \r
+
+      -- Customer activity bookings\r
+
+      SELECT * FROM vw_customer_activity_bookings;\r
+
+      \r
+
+      -- Customer travel bookings\r
+
+      SELECT * FROM vw_customer_travel_bookings;\r
+
+      \r
+
+      -- Customer payments\r
+
+      SELECT * FROM vw_customer_payments;\r
+
+      \r
+
+      -- Customer trips\r
+
+      SELECT * FROM vw_customer_trips;\r
+
+      \r
+
+      -- Customer reviews\r
+
+      SELECT * FROM vw_customer_reviews;\r
+
+      \r
+
+      -- Booking payment summary\r
+
+      SELECT * FROM vw_booking_payment_summary;"
+    languageId: oracle-sql
