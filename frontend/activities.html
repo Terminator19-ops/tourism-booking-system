@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activities – Tourism Booking</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="nav">
+            <a href="dashboard.html">Dashboard</a>
+            <a href="trips.html">Trips</a>
+            <a href="hotels.html">Hotels</a>
+            <a href="tours.html">Tours</a>
+            <a href="travel.html">Travel</a>
+            <a href="activities.html">Activities</a>
+            <a href="profile.html">Profile</a>
+        </div>
+
+        <div id="listView">
+            <h1>Activities</h1>
+
+            <!-- Filter -->
+            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px;">
+                <input type="text" id="filterDest"     placeholder="Destination"  style="width:160px;">
+                <input type="number" id="filterMaxPrice" placeholder="Max price $" style="width:120px;">
+                <button id="filterBtn">Filter</button>
+                <button id="clearBtn">Clear</button>
+            </div>
+
+            <div id="activityListContainer"></div>
+        </div>
+
+        <!-- Booking Form -->
+        <div id="bookingView" class="hidden">
+            <button id="backBtn">← Back to Activities</button>
+            <h2 style="margin-top:12px;" id="bookActivityLabel"></h2>
+            <div class="form-group">
+                <label>Date</label>
+                <input type="date" id="actDate">
+            </div>
+            <div class="form-group">
+                <label>Participants</label>
+                <input type="number" id="participants" min="1" max="20" value="1" style="width:80px;">
+            </div>
+            <div id="bookMsg"></div>
+            <button class="primary" id="confirmBtn">Confirm Booking</button>
+            <button id="cancelBtn">Cancel</button>
+        </div>
+    </div>
+    <script src="js/activities.js"></script>
+</body>
+</html>
+
