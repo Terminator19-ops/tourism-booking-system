@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile – Tourism Booking</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="nav">
+            <a href="dashboard.html">Dashboard</a>
+            <a href="trips.html">Trips</a>
+            <a href="hotels.html">Hotels</a>
+            <a href="tours.html">Tours</a>
+            <a href="travel.html">Travel</a>
+            <a href="activities.html">Activities</a>
+            <a href="profile.html">Profile</a>
+        </div>
+
+        <h1>My Profile</h1>
+
+        <!-- View profile -->
+        <div id="profileInfo">
+            <p><strong>Name:</strong> <span id="userName"></span></p>
+            <p style="margin-top:6px;"><strong>Email:</strong> <span id="userEmail"></span></p>
+            <button class="primary" id="editProfileBtn" style="margin-top:12px;">Edit Profile</button>
+        </div>
+
+        <!-- Edit profile form -->
+        <div id="editProfileForm" class="hidden section-sep">
+            <h2>Edit Profile</h2>
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" id="editName">
+            </div>
+            <div id="editMsg"></div>
+            <button class="primary" id="saveProfileBtn">Save</button>
+            <button id="cancelEditBtn">Cancel</button>
+        </div>
+
+        <!-- Change password -->
+        <div class="section-sep">
+            <h2>Change Password</h2>
+            <div class="form-group">
+                <label>Current Password</label>
+                <input type="password" id="oldPassword" placeholder="Current password">
+            </div>
+            <div class="form-group">
+                <label>New Password</label>
+                <input type="password" id="newPassword" placeholder="New password">
+            </div>
+            <div class="form-group">
+                <label>Confirm New Password</label>
+                <input type="password" id="confirmPassword" placeholder="Confirm new password">
+            </div>
+            <div id="pwdMsg"></div>
+            <button class="primary" id="changePwdBtn">Change Password</button>
+        </div>
+
+        <div class="section-sep">
+            <button class="danger" id="logoutBtn">Logout</button>
+        </div>
+    </div>
+    <script src="js/profile.js"></script>
+</body>
+</html>
+

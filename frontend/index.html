@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tourism Booking Platform</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Tourism Booking Platform</h1>
+        <p style="margin-top:10px;"><a href="login.html">Go to Login</a></p>
+    </div>
+    <script>
+        // Redirect to dashboard if logged in, else to login
+        if (localStorage.getItem('user')) {
+            window.location.href = 'dashboard.html';
+        } else {
+            window.location.href = 'login.html';
+        }
+    </script>
+</body>
+</html>

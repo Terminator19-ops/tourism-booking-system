@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tours – Tourism Booking</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="nav">
+            <a href="dashboard.html">Dashboard</a>
+            <a href="trips.html">Trips</a>
+            <a href="hotels.html">Hotels</a>
+            <a href="tours.html">Tours</a>
+            <a href="travel.html">Travel</a>
+            <a href="activities.html">Activities</a>
+            <a href="profile.html">Profile</a>
+        </div>
+
+        <!-- List View -->
+        <div id="listView">
+            <h1>Tour Packages</h1>
+            <div id="tourListContainer"></div>
+        </div>
+
+        <!-- Detail View -->
+        <div id="detailView" class="hidden">
+            <button id="backBtn">← Back to Tours</button>
+            <h1 id="detailName" style="margin-top:12px;"></h1>
+            <p id="detailDesc" style="color:#555;font-size:0.9rem;"></p>
+            <p id="detailPrice" style="font-size:0.9rem;margin-top:4px;"></p>
+            <p id="detailDuration" style="font-size:0.85rem;color:#888;"></p>
+
+            <div class="section-sep">
+                <h2>Destinations</h2>
+                <ul id="destList" style="padding-left:18px;"></ul>
+            </div>
+            <div class="section-sep">
+                <h2>Activities Included</h2>
+                <ul id="actList" style="padding-left:18px;"></ul>
+            </div>
+
+            <!-- Booking -->
+            <div class="section-sep">
+                <button class="primary" id="bookPackageBtn">Book This Package</button>
+                <div id="bookingForm" class="hidden" style="margin-top:12px;">
+                    <div class="form-group">
+                        <label>Travel Date</label>
+                        <input type="date" id="tourDate">
+                    </div>
+                    <div class="form-group">
+                        <label>Passengers</label>
+                        <input type="number" id="tourPassengers" min="1" max="20" value="1" style="width:80px;">
+                    </div>
+                    <div id="bookingMsg"></div>
+                    <button class="primary" id="confirmBookBtn">Confirm Booking</button>
+                    <button id="cancelBookBtn">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="js/tours.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hotels – Tourism Booking</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="nav">
+            <a href="dashboard.html">Dashboard</a>
+            <a href="trips.html">Trips</a>
+            <a href="hotels.html">Hotels</a>
+            <a href="tours.html">Tours</a>
+            <a href="travel.html">Travel</a>
+            <a href="activities.html">Activities</a>
+            <a href="profile.html">Profile</a>
+        </div>
+
+        <!-- List View -->
+        <div id="listView">
+            <h1>Hotels</h1>
+            <div class="form-group">
+                <input type="text" id="searchInput" placeholder="Search by name or location…" style="width:300px;">
+                <button id="searchBtn">Search</button>
+                <button id="clearBtn">Clear</button>
+            </div>
+            <div id="hotelListContainer" class="section-sep"></div>
+        </div>
+
+        <!-- Detail View -->
+        <div id="detailView" class="hidden">
+            <button id="backBtn">← Back to Hotels</button>
+            <h1 id="detailName" style="margin-top:12px;"></h1>
+            <p id="detailLocation" style="color:#555;font-size:0.9rem;"></p>
+            <p id="detailStars" style="font-size:0.85rem;color:#888;"></p>
+
+            <div class="section-sep">
+                <h2>Available Rooms</h2>
+                <div id="roomList"></div>
+            </div>
+
+            <!-- Booking form -->
+            <div id="bookingSection" class="hidden section-sep">
+                <h2>Book Room</h2>
+                <p id="bookingRoomLabel" style="margin-bottom:8px;font-size:0.9rem;"></p>
+                <div class="form-group">
+                    <label>Check-in Date</label>
+                    <input type="date" id="checkIn">
+                </div>
+                <div class="form-group">
+                    <label>Check-out Date</label>
+                    <input type="date" id="checkOut">
+                </div>
+                <div class="form-group">
+                    <label>Guests</label>
+                    <input type="number" id="guests" min="1" max="10" value="1" style="width:80px;">
+                </div>
+                <div id="bookingMsg"></div>
+                <button class="primary" id="confirmBookBtn">Confirm Booking</button>
+                <button id="cancelBookBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
+    <script src="js/hotels.js"></script>
+</body>
+</html>
+

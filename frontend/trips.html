@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trips – Tourism Booking</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="nav">
+            <a href="dashboard.html">Dashboard</a>
+            <a href="trips.html">Trips</a>
+            <a href="hotels.html">Hotels</a>
+            <a href="tours.html">Tours</a>
+            <a href="travel.html">Travel</a>
+            <a href="activities.html">Activities</a>
+            <a href="profile.html">Profile</a>
+        </div>
+
+        <!-- Trip List View -->
+        <div id="listView">
+            <h1>My Trips</h1>
+            <button class="primary" id="createTripBtn">+ Create New Trip</button>
+
+            <!-- Create trip inline form -->
+            <div id="createTripForm" class="hidden section-sep">
+                <h2>New Trip</h2>
+                <div class="form-group">
+                    <label>Trip Name</label>
+                    <input type="text" id="tripNameInput" placeholder="e.g. Summer in Europe">
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <input type="text" id="tripDescInput" placeholder="Short description">
+                </div>
+                <div class="form-group">
+                    <label>Start Date</label>
+                    <input type="date" id="tripStartInput">
+                </div>
+                <div class="form-group">
+                    <label>End Date</label>
+                    <input type="date" id="tripEndInput">
+                </div>
+                <div id="createTripMsg"></div>
+                <button class="primary" id="saveTripBtn">Save Trip</button>
+                <button id="cancelTripBtn">Cancel</button>
+            </div>
+
+            <div class="section-sep" id="tripListContainer">
+                <!-- trips rendered here -->
+            </div>
+        </div>
+
+        <!-- Trip Detail View -->
+        <div id="detailView" class="hidden">
+            <button id="backToListBtn">← Back to Trips</button>
+            <h1 id="detailTripName" style="margin-top:12px;"></h1>
+            <p id="detailTripDesc" style="color:#555;font-size:0.9rem;margin-bottom:4px;"></p>
+            <p id="detailTripDates" style="font-size:0.85rem;color:#888;"></p>
+
+            <!-- Destinations -->
+            <div class="section-sep">
+                <h2>Destinations</h2>
+                <button class="primary" id="addDestBtn">+ Add Destination</button>
+                <div id="addDestForm" class="hidden" style="margin-top:10px;">
+                    <input type="text" id="destNameInput" placeholder="Destination name">
+                    <button id="saveDestBtn">Add</button>
+                    <button id="cancelDestBtn">Cancel</button>
+                </div>
+                <ul id="destList" style="margin-top:10px;padding-left:18px;"></ul>
+            </div>
+
+            <!-- Bookings -->
+            <div class="section-sep">
+                <h2>Bookings</h2>
+                <div id="bookingList"></div>
+            </div>
+
+            <!-- Review -->
+            <div class="section-sep">
+                <h2>Review</h2>
+                <div id="reviewDisplay"></div>
+                <button class="primary" id="addReviewBtn">Write Review</button>
+                <div id="reviewForm" class="hidden" style="margin-top:10px;">
+                    <div class="form-group">
+                        <label>Rating (1–5)</label>
+                        <input type="number" id="reviewRating" min="1" max="5" placeholder="5">
+                    </div>
+                    <div class="form-group">
+                        <label>Comment</label>
+                        <input type="text" id="reviewComment" placeholder="Your review">
+                    </div>
+                    <button id="saveReviewBtn">Submit Review</button>
+                    <button id="cancelReviewBtn">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="js/trips.js"></script>
+</body>
+</html>
+
