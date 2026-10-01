@@ -1,13 +1,13 @@
 import oracledb
 
-WALLET_DIR = "/home/terminator18ops/Documents/Aditya/SEM-5/DBMS/Project/oracle_wallet"
+WALLET_DIR = "/home/terminator18ops/Documents/Aditya/SEM-5/DBMS/Project/wallet"
 
 try:
     print("Connecting to Oracle...")
 
     connection = oracledb.connect(
         user="PROJECT",
-        password="Zebra#7391Moon",
+        password="project@34",
         dsn="dbmsproject_low",
         config_dir=WALLET_DIR,
     )
