@@ -155,6 +155,56 @@ function setupRoleNavigation() {
     }
 }
 
+function renderNavigation() {
+    const role = getRole();
+    const navContainer = document.querySelector('.nav');
+    if (!navContainer) return;
+
+    let navHtml = '';
+    
+    if (role === 'CUSTOMER') {
+        navHtml = `
+            <a href="dashboard.html">Dashboard</a>
+            <a href="trips.html">Trips</a>
+            <a href="hotels.html">Hotels</a>
+            <a href="tours.html">Tours</a>
+            <a href="travel.html">Travel</a>
+            <a href="activities.html">Activities</a>
+            <a href="profile.html">Profile</a>
+            <a href="admin.html" id="adminNavLink" class="hidden">Admin</a>
+            <button id="logoutBtn">Logout</button>
+        `;
+    } else if (role === 'OWNER') {
+        navHtml = `
+            <a href="owner.html">My Hotels</a>
+            <a href="owner.html#bookings">My Bookings</a>
+            <a href="owner.html#trips">My Trips</a>
+            <a href="profile.html">Profile</a>
+            <a href="admin.html" id="adminNavLink" class="hidden">Admin</a>
+            <button id="logoutBtn">Logout</button>
+        `;
+    } else if (role === 'ADMIN') {
+        navHtml = `
+            <a href="profile.html">Profile</a>
+            <a href="admin.html" id="adminNavLink">Admin</a>
+            <button id="logoutBtn">Logout</button>
+        `;
+    }
+    
+    navContainer.innerHTML = navHtml;
+    
+    // Re-attach logout handler
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async () => {
+            await logout();
+        });
+    }
+    
+    // Call setupRoleNavigation to handle admin link visibility
+    setupRoleNavigation();
+}
+
 async function loadCurrentUser() {
     const token = getAuthToken();
     if (!token) {

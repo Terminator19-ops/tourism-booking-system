@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (!requireRole(['CUSTOMER', 'ADMIN'])) return;
 
-    setupRoleNavigation();
+    renderNavigation();
 
     await loadHotels();
 

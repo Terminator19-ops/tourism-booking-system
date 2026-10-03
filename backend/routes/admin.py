@@ -267,7 +267,7 @@ async def delete_hotel(hotel_id: int, current_user: Dict[str, Any] = Depends(req
         with get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("UPDATE HOTEL SET STATUS = 'INACTIVE' WHERE HOTEL_ID = :hotel_id", {"hotel_id": hotel_id})
-                cur.execute("UPDATE ROOM SET STATUS = 'INACTIVE' WHERE HOTEL_ID = :hotel_id", {"hotel_id": hotel_id})
+                cur.execute("UPDATE ROOM SET STATUS = 'MAINTENANCE' WHERE HOTEL_ID = :hotel_id", {"hotel_id": hotel_id})
                 conn.commit()
         await log_deactivate(current_user["user_id"], "HOTEL", hotel_id, str(old_hotel))
         return {"message": "Hotel has dependencies, deactivated instead of deleted."}
@@ -720,8 +720,7 @@ async def delete_travel_segment(segment_id: int, current_user: Dict[str, Any] = 
     # Check for dependencies
     deps = await _fetch_one("""
         SELECT 
-            (SELECT COUNT(*) FROM PACKAGE_TRAVEL WHERE SEGMENT_ID = :segment_id) AS packages,
-            (SELECT COUNT(*) FROM TRIP_TRAVEL WHERE SEGMENT_ID = :segment_id) AS trips
+            (SELECT COUNT(*) FROM TRAVEL_BOOKING WHERE TRAVEL_SEGMENT_ID = :segment_id) AS bookings
         FROM DUAL
     """, {"segment_id": segment_id})
     
@@ -848,8 +847,8 @@ async def delete_room(room_id: int, current_user: Dict[str, Any] = Depends(requi
     # Check for dependencies
     deps = await _fetch_one("""
         SELECT 
-            (SELECT COUNT(*) FROM BOOKING WHERE ROOM_ID = :room_id AND STATUS IN ('PENDING', 'CONFIRMED')) AS active_bookings,
-            (SELECT COUNT(*) FROM BOOKING WHERE ROOM_ID = :room_id) AS all_bookings
+            (SELECT COUNT(*) FROM BOOKING b JOIN HOTEL_BOOKING hb ON b.BOOKING_ID = hb.BOOKING_ID WHERE hb.ROOM_ID = :room_id AND b.STATUS IN ('PENDING', 'CONFIRMED')) AS active_bookings,
+            (SELECT COUNT(*) FROM BOOKING b JOIN HOTEL_BOOKING hb ON b.BOOKING_ID = hb.BOOKING_ID WHERE hb.ROOM_ID = :room_id) AS all_bookings
         FROM DUAL
     """, {"room_id": room_id})
     
@@ -857,7 +856,7 @@ async def delete_room(room_id: int, current_user: Dict[str, Any] = Depends(requi
         # Soft delete instead
         with get_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute("UPDATE ROOM SET STATUS = 'INACTIVE' WHERE ROOM_ID = :room_id", {"room_id": room_id})
+                cur.execute("UPDATE ROOM SET STATUS = 'MAINTENANCE' WHERE ROOM_ID = :room_id", {"room_id": room_id})
                 conn.commit()
         await log_deactivate(current_user["user_id"], "ROOM", room_id, str(old_room))
         return {"message": "Room has active bookings, deactivated instead of deleted."}
@@ -1085,7 +1084,6 @@ async def delete_trip(trip_id: int, current_user: Dict[str, Any] = Depends(requi
     deps = await _fetch_one("""
         SELECT 
             (SELECT COUNT(*) FROM TRIP_DESTINATION WHERE TRIP_ID = :trip_id) AS destinations,
-            (SELECT COUNT(*) FROM TRIP_TRAVEL WHERE TRIP_ID = :trip_id) AS travel_segments,
             (SELECT COUNT(*) FROM BOOKING WHERE TRIP_ID = :trip_id AND STATUS IN ('PENDING', 'CONFIRMED')) AS active_bookings
         FROM DUAL
     """, {"trip_id": trip_id})

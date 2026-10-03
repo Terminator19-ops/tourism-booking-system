@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (!requireRole(['OWNER', 'ADMIN'])) return;
 
-    setupRoleNavigation();
+    renderNavigation();
 
     document.getElementById('welcomeMessage').textContent = `Owner Dashboard - ${user.first_name} ${user.last_name}`;
 
@@ -38,11 +38,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Create room
     document.getElementById('createRoomBtn').addEventListener('click', () => {
+        resetRoomForm();
         document.getElementById('createRoomForm').classList.remove('hidden');
         document.getElementById('createRoomMsg').textContent = '';
     });
     document.getElementById('cancelRoomBtn').addEventListener('click', () => {
-        document.getElementById('createRoomForm').classList.add('hidden');
+        resetRoomForm();
     });
     document.getElementById('saveRoomBtn').addEventListener('click', async () => {
         await createRoom();
@@ -252,6 +253,126 @@ async function createRoom() {
         await loadRooms(currentHotelId);
     } catch (error) {
         showMessage('createRoomMsg', handleApiError(error, 'Failed to create room.'), 'error');
+    } finally {
+        showLoading(btn, false);
+    }
+}
+
+let editingRoomId = null;
+
+async function editRoom(roomId) {
+    if (!currentHotelId) return;
+    
+    try {
+        const rooms = await apiFetch(`/owner/hotels/${currentHotelId}/rooms`);
+        const room = rooms.find(r => r.room_id === roomId);
+        if (!room) {
+            showMessage('createRoomMsg', 'Room not found.', 'error');
+            return;
+        }
+        
+        // Populate form with room data
+        document.getElementById('roomNumber').value = room.room_number;
+        document.getElementById('roomType').value = room.room_type;
+        document.getElementById('roomCapacity').value = room.capacity;
+        document.getElementById('roomPrice').value = room.price_per_night;
+        document.getElementById('roomStatus').value = room.status;
+        
+        // Set editing mode
+        editingRoomId = roomId;
+        document.getElementById('createRoomForm').classList.remove('hidden');
+        document.getElementById('createRoomMsg').textContent = '';
+        document.getElementById('saveRoomBtn').textContent = 'Update Room';
+        document.getElementById('cancelRoomBtn').textContent = 'Cancel Edit';
+    } catch (error) {
+        showMessage('createRoomMsg', handleApiError(error, 'Failed to load room details.'), 'error');
+    }
+}
+
+async function deactivateRoom(roomId) {
+    if (!currentHotelId) return;
+    
+    if (!confirm('Are you sure you want to deactivate this room?')) {
+        return;
+    }
+    
+    try {
+        await apiFetch(`/owner/hotels/${currentHotelId}/rooms/${roomId}`, {
+            method: 'DELETE'
+        });
+        
+        showMessage('createRoomMsg', 'Room deactivated successfully!', 'success');
+        await loadRooms(currentHotelId);
+    } catch (error) {
+        showMessage('createRoomMsg', handleApiError(error, 'Failed to deactivate room.'), 'error');
+    }
+}
+
+function resetRoomForm() {
+    editingRoomId = null;
+    document.getElementById('createRoomForm').classList.add('hidden');
+    document.getElementById('roomNumber').value = '';
+    document.getElementById('roomType').value = '';
+    document.getElementById('roomCapacity').value = '2';
+    document.getElementById('roomPrice').value = '100';
+    document.getElementById('roomStatus').value = 'AVAILABLE';
+    document.getElementById('createRoomMsg').textContent = '';
+    document.getElementById('saveRoomBtn').textContent = 'Save Room';
+    document.getElementById('cancelRoomBtn').textContent = 'Cancel';
+}
+
+async function createRoom() {
+    if (!currentHotelId) return;
+    
+    const roomNumber = document.getElementById('roomNumber').value.trim();
+    const roomType = document.getElementById('roomType').value.trim();
+    const capacity = parseInt(document.getElementById('roomCapacity').value) || 1;
+    const pricePerNight = parseFloat(document.getElementById('roomPrice').value) || 0;
+    const status = document.getElementById('roomStatus').value;
+    
+    if (!roomNumber || !roomType) {
+        showMessage('createRoomMsg', 'Room number and type are required.', 'error');
+        return;
+    }
+
+    const btn = document.getElementById('saveRoomBtn');
+    showLoading(btn, true);
+    showMessage('createRoomMsg', '', 'success');
+
+    try {
+        let data;
+        if (editingRoomId) {
+            // Update existing room
+            data = await apiFetch(`/owner/hotels/${currentHotelId}/rooms/${editingRoomId}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    room_number: roomNumber,
+                    room_type: roomType,
+                    capacity: capacity,
+                    price_per_night: pricePerNight,
+                    status: status
+                })
+            });
+            showMessage('createRoomMsg', 'Room updated successfully!', 'success');
+        } else {
+            // Create new room
+            data = await apiFetch(`/owner/hotels/${currentHotelId}/rooms`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    room_number: roomNumber,
+                    room_type: roomType,
+                    capacity: capacity,
+                    price_per_night: pricePerNight,
+                    status: status
+                })
+            });
+            showMessage('createRoomMsg', `Room created! ID: ${data.room_id}`, 'success');
+        }
+
+        resetRoomForm();
+        await loadRooms(currentHotelId);
+    } catch (error) {
+        showMessage('createRoomMsg', handleApiError(error, editingRoomId ? 'Failed to update room.' : 'Failed to create room.'), 'error');
     } finally {
         showLoading(btn, false);
     }

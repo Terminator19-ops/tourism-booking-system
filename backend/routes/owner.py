@@ -225,13 +225,13 @@ async def deactivate_hotel(hotel_id: int, current_user: Dict[str, Any] = Depends
     
     # Check for active bookings
     active_bookings = await _fetch_one("""
-        SELECT COUNT(*) FROM BOOKING b
+        SELECT COUNT(*) as cnt FROM BOOKING b
         JOIN HOTEL_BOOKING hb ON b.BOOKING_ID = hb.BOOKING_ID
         JOIN ROOM r ON hb.ROOM_ID = r.ROOM_ID
         WHERE r.HOTEL_ID = :hotel_id AND b.STATUS NOT IN ('CANCELLED', 'COMPLETED')
     """, {"hotel_id": hotel_id})
     
-    if active_bookings and active_bookings[0] > 0:
+    if active_bookings and active_bookings.get('cnt', 0) > 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                           detail="Cannot deactivate hotel with active bookings. Cancel bookings first.")
     
@@ -245,7 +245,7 @@ async def deactivate_hotel(hotel_id: int, current_user: Dict[str, Any] = Depends
             )
             # Also deactivate rooms
             cur.execute(
-                "UPDATE ROOM SET STATUS = 'INACTIVE' WHERE HOTEL_ID = :hotel_id",
+                "UPDATE ROOM SET STATUS = 'MAINTENANCE' WHERE HOTEL_ID = :hotel_id",
                 {"hotel_id": hotel_id}
             )
             conn.commit()
@@ -387,12 +387,12 @@ async def deactivate_room(hotel_id: int, room_id: int, current_user: Dict[str, A
     
     # Check for active bookings
     active_bookings = await _fetch_one("""
-        SELECT COUNT(*) FROM BOOKING b
+        SELECT COUNT(*) as cnt FROM BOOKING b
         JOIN HOTEL_BOOKING hb ON b.BOOKING_ID = hb.BOOKING_ID
         WHERE hb.ROOM_ID = :room_id AND b.STATUS NOT IN ('CANCELLED', 'COMPLETED')
     """, {"room_id": room_id})
     
-    if active_bookings and active_bookings[0] > 0:
+    if active_bookings and active_bookings.get('cnt', 0) > 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                           detail="Cannot deactivate room with active bookings. Cancel bookings first.")
     
@@ -401,7 +401,7 @@ async def deactivate_room(hotel_id: int, room_id: int, current_user: Dict[str, A
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "UPDATE ROOM SET STATUS = 'INACTIVE' WHERE ROOM_ID = :room_id",
+                "UPDATE ROOM SET STATUS = 'MAINTENANCE' WHERE ROOM_ID = :room_id",
                 {"room_id": room_id}
             )
             conn.commit()

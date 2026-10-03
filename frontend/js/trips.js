@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (!requireRole(['CUSTOMER', 'ADMIN'])) return;
 
-    setupRoleNavigation();
+    renderNavigation();
 
     await loadTrips();
 
@@ -157,8 +157,8 @@ window.openDetail = async function(id) {
         renderDestinations(trip.destinations || []);
         // Bookings
         renderBookings(trip.bookings || []);
-        // Review
-        renderReview(trip);
+        // Review - fetch separately
+        await loadTripReview(id);
 
         listView.classList.add('hidden');
         detailView.classList.remove('hidden');
@@ -213,11 +213,29 @@ function renderBookings(bookings) {
     }).join('');
 }
 
-function renderReview(trip) {
+async function loadTripReview(tripId) {
+    try {
+        const review = await apiFetch(`/customer/trips/${tripId}/review`);
+        renderReview(review);
+    } catch (error) {
+        // If 404 or no review, show empty state
+        renderReview(null);
+    }
+}
+
+function renderReview(review) {
     const div = document.getElementById('reviewDisplay');
-    // Check if trip has a review (would need a separate API call or be included in trip details)
-    // For now, show a placeholder
-    div.innerHTML = '<p style="color:#888;">No review yet. Click "Write Review" to add one.</p>';
+    if (!review) {
+        div.innerHTML = '<p style="color:#888;">No review yet. Click "Write Review" to add one.</p>';
+        return;
+    }
+    div.innerHTML = `
+        <div class="list-item">
+            <strong>Rating: ${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}</strong>
+            <p>${review.comment || 'No comment provided.'}</p>
+            <p style="font-size:0.8rem;color:#888;">Submitted: ${formatDate(review.review_date)}</p>
+        </div>
+    `;
 }
 
 async function addTripDestination() {
@@ -271,19 +289,16 @@ async function addTripDestination() {
 
 async function loadDestinationsForSelect() {
     try {
-        // We need to fetch destinations - there's no direct customer endpoint for this
-        // But we can use the admin endpoint or we need to add one
-        // For now, let's try to get destinations from the hotel list which includes destination info
-        const hotels = await apiFetch('/customer/hotels');
-        const destinations = [...new Map(hotels.map(h => [h.destination_id, {id: h.destination_id, name: h.destination_name, city: h.city, country: h.country}])).values()];
+        // Fetch all active destinations from the new customer endpoint
+        const destinations = await apiFetch('/customer/destinations');
         
         const select = document.getElementById('destSelect');
         select.innerHTML = '<option value="">Select destination</option>';
         destinations.forEach(d => {
             if (d.name) {
                 const option = document.createElement('option');
-                option.value = d.id;
-                option.textContent = `${d.name}${d.city ? ', ' + d.city : ''}${d.country ? ', ' + d.country : ''}`;
+                option.value = d.destination_id;
+                option.textContent = `${d.name}${d.city ? ', ' + d.city : ''}${d.state ? ', ' + d.state : ''}${d.country ? ', ' + d.country : ''}`;
                 select.appendChild(option);
             }
         });
@@ -324,9 +339,8 @@ async function submitReview() {
         document.getElementById('reviewRating').value = '';
         document.getElementById('reviewComment').value = '';
         
-        // Reload trip to show review
-        const trip = await apiFetch(`/customer/trips/${currentTripId}`);
-        renderReview(trip);
+        // Reload review to show it
+        await loadTripReview(currentTripId);
     } catch (error) {
         showMessage('reviewDisplay', handleApiError(error, 'Failed to submit review.'), 'error');
     } finally {

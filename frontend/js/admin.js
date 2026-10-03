@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (!requireRole(['ADMIN'])) return;
 
-    setupRoleNavigation();
+    renderNavigation();
 
     document.getElementById('welcomeMessage').textContent = `Admin Dashboard - ${user.first_name} ${user.last_name}`;
 

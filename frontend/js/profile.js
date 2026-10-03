@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const user = await loadCurrentUser();
     if (!user) return;
 
-    setupRoleNavigation();
+    renderNavigation();
 
     document.getElementById('userFirstName').textContent = user.first_name;
     document.getElementById('userLastName').textContent = user.last_name;

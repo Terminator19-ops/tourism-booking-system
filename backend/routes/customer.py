@@ -117,6 +117,18 @@ async def list_activities(current_user: Dict[str, Any] = Depends(get_current_use
     return rows
 
 
+@router.get("/destinations")
+async def list_destinations(current_user: Dict[str, Any] = Depends(get_current_user)):
+    """List all active destinations for customer trip planning."""
+    rows = await _fetch_rows("""
+        SELECT DESTINATION_ID, NAME, CITY, STATE, COUNTRY, DESCRIPTION
+        FROM DESTINATION
+        WHERE STATUS = 'ACTIVE'
+        ORDER BY NAME
+    """)
+    return rows
+
+
 @router.get("/tour-packages")
 async def list_tour_packages(current_user: Dict[str, Any] = Depends(get_current_user)):
     """List all active tour packages."""
@@ -379,7 +391,7 @@ async def create_booking(payload: BookingCreateRequest, current_user: Dict[str, 
                     """,
                     {
                         "user_id": user_id,
-                        "trip_id": trip_id or 0,
+                        "trip_id": trip_id if trip_id else None,
                         "room_id": payload.room_id,
                         "check_in": payload.check_in_date,
                         "check_out": payload.check_out_date,
@@ -403,7 +415,7 @@ async def create_booking(payload: BookingCreateRequest, current_user: Dict[str, 
                     """,
                     {
                         "user_id": user_id,
-                        "trip_id": trip_id or 0,
+                        "trip_id": trip_id if trip_id else None,
                         "package_id": payload.package_id,
                         "people": payload.number_of_people,
                         "travel_date": payload.travel_date,
@@ -426,7 +438,7 @@ async def create_booking(payload: BookingCreateRequest, current_user: Dict[str, 
                     """,
                     {
                         "user_id": user_id,
-                        "trip_id": trip_id or 0,
+                        "trip_id": trip_id if trip_id else None,
                         "activity_id": payload.activity_id,
                         "activity_date": payload.activity_date,
                         "people": payload.number_of_people,
@@ -448,7 +460,7 @@ async def create_booking(payload: BookingCreateRequest, current_user: Dict[str, 
                     """,
                     {
                         "user_id": user_id,
-                        "trip_id": trip_id or 0,
+                        "trip_id": trip_id if trip_id else None,
                         "segment_id": payload.travel_segment_id,
                         "passengers": payload.number_of_passengers,
                         "booking_id": booking_id,
@@ -679,7 +691,7 @@ async def submit_review(payload: ReviewCreateRequest, current_user: Dict[str, An
     
     # Get the created review
     review = await _fetch_one("""
-        SELECT REVIEW_ID, TRIP_ID, RATING, USER_COMMENT, REVIEW_DATE
+        SELECT REVIEW_ID, TRIP_ID, RATING, USER_COMMENT AS comment, REVIEW_DATE
         FROM REVIEW
         WHERE TRIP_ID = :trip_id
     """, {"trip_id": payload.trip_id})
@@ -701,3 +713,28 @@ async def list_reviews(current_user: Dict[str, Any] = Depends(require_customer))
         ORDER BY r.REVIEW_DATE DESC
     """, {"user_id": user_id})
     return rows
+
+
+@router.get("/trips/{trip_id}/review")
+async def get_trip_review(trip_id: int, current_user: Dict[str, Any] = Depends(require_customer)):
+    """Get review for a specific trip."""
+    user_id = current_user["user_id"]
+    
+    # Verify trip ownership
+    trip = await _fetch_one(
+        "SELECT TRIP_ID FROM TRIP WHERE TRIP_ID = :trip_id AND USER_ID = :user_id",
+        {"trip_id": trip_id, "user_id": user_id}
+    )
+    if not trip:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Trip not found.")
+    
+    review = await _fetch_one("""
+        SELECT REVIEW_ID, TRIP_ID, RATING, USER_COMMENT AS comment, REVIEW_DATE
+        FROM REVIEW
+        WHERE TRIP_ID = :trip_id
+    """, {"trip_id": trip_id})
+    
+    if not review:
+        return None
+    
+    return review
