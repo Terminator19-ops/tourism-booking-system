@@ -16,30 +16,39 @@
             <a href="travel.html">Travel</a>
             <a href="activities.html">Activities</a>
             <a href="profile.html">Profile</a>
+            <a href="admin.html" id="adminNavLink" class="hidden">Admin</a>
         </div>
 
         <h1>My Profile</h1>
 
-        <!-- View profile -->
         <div id="profileInfo">
-            <p><strong>Name:</strong> <span id="userName"></span></p>
-            <p style="margin-top:6px;"><strong>Email:</strong> <span id="userEmail"></span></p>
+            <p><strong>First Name:</strong> <span id="userFirstName"></span></p>
+            <p><strong>Last Name:</strong> <span id="userLastName"></span></p>
+            <p><strong>Email:</strong> <span id="userEmail"></span></p>
+            <p><strong>Phone:</strong> <span id="userPhone"></span></p>
+            <p><strong>Role:</strong> <span id="userRole"></span></p>
             <button class="primary" id="editProfileBtn" style="margin-top:12px;">Edit Profile</button>
         </div>
 
-        <!-- Edit profile form -->
         <div id="editProfileForm" class="hidden section-sep">
             <h2>Edit Profile</h2>
             <div class="form-group">
-                <label>Name</label>
-                <input type="text" id="editName">
+                <label>First Name</label>
+                <input type="text" id="editFirstName">
+            </div>
+            <div class="form-group">
+                <label>Last Name</label>
+                <input type="text" id="editLastName">
+            </div>
+            <div class="form-group">
+                <label>Phone</label>
+                <input type="text" id="editPhone">
             </div>
             <div id="editMsg"></div>
             <button class="primary" id="saveProfileBtn">Save</button>
             <button id="cancelEditBtn">Cancel</button>
         </div>
 
-        <!-- Change password -->
         <div class="section-sep">
             <h2>Change Password</h2>
             <div class="form-group">
@@ -62,6 +71,7 @@
             <button class="danger" id="logoutBtn">Logout</button>
         </div>
     </div>
+    <script src="js/api.js"></script>
     <script src="js/profile.js"></script>
 </body>
 </html>

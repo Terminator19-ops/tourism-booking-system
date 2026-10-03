@@ -1,56 +1,26 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (!user) { window.location.href = 'login.html'; return; }
+// Uses shared api.js for auth, API calls, and error handling
 
-    const mockActivities = [
-        { id: 1, name: 'Louvre Museum Tour',    dest: 'Paris',     duration: '3h',   price: 25 },
-        { id: 2, name: 'Scuba Diving',           dest: 'Miami',     duration: '4h',   price: 110 },
-        { id: 3, name: 'Colosseum Guided Tour',  dest: 'Rome',      duration: '2h',   price: 30 },
-        { id: 4, name: 'Mount Fuji Day Trip',    dest: 'Tokyo',     duration: '8h',   price: 150 },
-        { id: 5, name: 'Camel Safari',           dest: 'Jaipur',    duration: '3h',   price: 40 },
-        { id: 6, name: 'Bungee Jumping',         dest: 'Queenstown',duration: '2h',   price: 200 }
-    ];
+let allActivities = [];
+let currentActId = null;
 
-    let filteredActivities = mockActivities;
-    let currentActId = null;
+const listView = document.getElementById('listView');
+const bookingView = document.getElementById('bookingView');
+const container = document.getElementById('activityListContainer');
+const bookMsg = document.getElementById('bookMsg');
 
-    const listView    = document.getElementById('listView');
-    const bookingView = document.getElementById('bookingView');
-    const container   = document.getElementById('activityListContainer');
-    const bookMsg     = document.getElementById('bookMsg');
+document.addEventListener('DOMContentLoaded', async () => {
+    const user = await loadCurrentUser();
+    if (!user) return;
 
-    function renderList(acts) {
-        container.innerHTML = '';
-        if (!acts.length) { container.innerHTML = '<p style="color:#888;">No activities found.</p>'; return; }
-        acts.forEach(a => {
-            const d = document.createElement('div');
-            d.className = 'list-item';
-            d.innerHTML = `
-                <strong>${a.name}</strong>
-                <p>Destination: ${a.dest} &nbsp;|&nbsp; Duration: ${a.duration}</p>
-                <p>Price: $${a.price} per person</p>
-                <button onclick="startBook(${a.id})">Book</button>
-            `;
-            container.appendChild(d);
-        });
-    }
+    if (!requireRole(['CUSTOMER', 'ADMIN'])) return;
 
-    window.startBook = function(id) {
-        currentActId = id;
-        const a = mockActivities.find(x => x.id === id);
-        document.getElementById('bookActivityLabel').textContent =
-            `${a.name} in ${a.dest} – $${a.price}/person`;
-        bookMsg.textContent = '';
-        listView.classList.add('hidden');
-        bookingView.classList.remove('hidden');
-    };
+    setupRoleNavigation();
 
-    document.getElementById('confirmBtn').addEventListener('click', () => {
-        const date = document.getElementById('actDate').value;
-        const pax  = document.getElementById('participants').value;
-        if (!date) { bookMsg.textContent = 'Please select a date.'; bookMsg.className = 'msg-error'; return; }
-        bookMsg.textContent = `✓ Booked! Date: ${date}, Participants: ${pax}`;
-        bookMsg.className = 'msg-success';
+    await loadActivities();
+
+    document.getElementById('backBtn').addEventListener('click', () => {
+        bookingView.classList.add('hidden');
+        listView.classList.remove('hidden');
     });
 
     document.getElementById('cancelBtn').addEventListener('click', () => {
@@ -58,29 +28,125 @@ document.addEventListener('DOMContentLoaded', () => {
         listView.classList.remove('hidden');
     });
 
-    document.getElementById('backBtn').addEventListener('click', () => {
-        bookingView.classList.add('hidden');
-        listView.classList.remove('hidden');
+    document.getElementById('confirmBtn').addEventListener('click', async () => {
+        await bookActivity();
     });
 
     // Filter
     document.getElementById('filterBtn').addEventListener('click', () => {
-        const dest     = document.getElementById('filterDest').value.trim().toLowerCase();
+        const dest = document.getElementById('filterDest').value.trim().toLowerCase();
         const maxPrice = parseFloat(document.getElementById('filterMaxPrice').value) || Infinity;
-        filteredActivities = mockActivities.filter(a =>
-            (!dest || a.dest.toLowerCase().includes(dest)) &&
-            a.price <= maxPrice
+        const filtered = allActivities.filter(a =>
+            (!dest || (a.destination_name && a.destination_name.toLowerCase().includes(dest))) &&
+            (a.price || 0) <= maxPrice
         );
-        renderList(filteredActivities);
+        renderList(filtered);
     });
 
     document.getElementById('clearBtn').addEventListener('click', () => {
-        document.getElementById('filterDest').value     = '';
+        document.getElementById('filterDest').value = '';
         document.getElementById('filterMaxPrice').value = '';
-        filteredActivities = mockActivities;
-        renderList(filteredActivities);
+        renderList(allActivities);
     });
-
-    renderList(mockActivities);
 });
+
+async function loadActivities() {
+    container.innerHTML = '<p style="color:#888;">Loading activities...</p>';
+    try {
+        const activities = await apiFetch('/customer/activities');
+        allActivities = activities;
+        renderList(activities);
+    } catch (error) {
+        container.innerHTML = `<p style="color:red;">${handleApiError(error, 'Failed to load activities.')}</p>`;
+    }
+}
+
+function renderList(activities) {
+    container.innerHTML = '';
+    if (!activities.length) { 
+        container.innerHTML = '<p style="color:#888;">No activities found.</p>'; 
+        return; 
+    }
+    activities.forEach(a => {
+        const d = document.createElement('div');
+        d.className = 'list-item';
+        const duration = a.duration_hours ? `${a.duration_hours}h` : 'N/A';
+        d.innerHTML = `
+            <strong>${a.name}</strong>
+            <p>Destination: ${a.destination_name || 'N/A'} &nbsp;|&nbsp; Duration: ${duration}</p>
+            <p>Price: ${formatCurrency(a.price)} per person</p>
+            <button onclick="startBook(${a.activity_id})">Book</button>
+        `;
+        container.appendChild(d);
+    });
+}
+
+window.startBook = function(id) {
+    currentActId = id;
+    const a = allActivities.find(x => x.activity_id === id);
+    if (a) {
+        document.getElementById('bookActivityLabel').textContent =
+            `${a.name} in ${a.destination_name || 'N/A'} – ${formatCurrency(a.price)}/person`;
+    }
+    bookMsg.textContent = '';
+    listView.classList.add('hidden');
+    bookingView.classList.remove('hidden');
+};
+
+async function bookActivity() {
+    const date = document.getElementById('actDate').value;
+    const pax = document.getElementById('participants').value;
+    
+    if (!date) { 
+        showMessage('bookMsg', 'Please select a date.', 'error'); 
+        return; 
+    }
+    if (!currentActId) {
+        showMessage('bookMsg', 'Please select an activity first.', 'error');
+        return;
+    }
+
+    const btn = document.getElementById('confirmBtn');
+    showLoading(btn, true);
+    showMessage('bookMsg', '', 'success');
+
+    try {
+        // First, create a trip for this booking
+        console.log('Creating trip...');
+        const tripData = await apiFetch('/customer/trips', {
+            method: 'POST',
+            body: JSON.stringify({
+                trip_name: `Activity Booking ${new Date().toLocaleDateString()}`,
+                start_date: date,
+                end_date: date
+            })
+        });
+        console.log('Trip created:', tripData);
+        const tripId = tripData.trip_id;
+
+        // Now create the booking with the trip_id
+        console.log('Creating booking with trip_id:', tripId);
+        const data = await apiFetch('/customer/bookings', {
+            method: 'POST',
+            body: JSON.stringify({
+                booking_type: 'ACTIVITY',
+                trip_id: tripId,
+                activity_id: currentActId,
+                activity_date: date,
+                number_of_people: parseInt(pax) || 1
+            })
+        });
+
+        showMessage('bookMsg', `✓ Activity booked! Booking ID: ${data.booking_id}, Total: ${formatCurrency(data.total_amount)}`, 'success');
+        
+        if (typeof loadDashboardData === 'function') {
+            loadDashboardData();
+        }
+    } catch (error) {
+        console.error('Booking error:', error);
+        showMessage('bookMsg', handleApiError(error, 'Booking failed.'), 'error');
+    } finally {
+        showLoading(btn, false);
+    }
+}
 

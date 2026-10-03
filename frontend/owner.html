@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Owner Dashboard – Tourism Booking</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="nav">
+            <a href="owner.html">My Hotels</a>
+            <a href="owner.html#bookings">My Bookings</a>
+            <a href="owner.html#trips">My Trips</a>
+            <a href="profile.html">Profile</a>
+            <a href="admin.html" id="adminNavLink" class="hidden">Admin</a>
+            <button id="logoutBtn">Logout</button>
+        </div>
+
+        <h1 id="welcomeMessage">Owner Dashboard</h1>
+
+        <!-- My Hotels Section -->
+        <div id="hotelsSection">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <h2>My Hotels</h2>
+                <button class="primary" id="createHotelBtn">+ Add Hotel</button>
+            </div>
+
+            <!-- Create Hotel Form -->
+            <div id="createHotelForm" class="hidden section-sep">
+                <h3>Create New Hotel</h3>
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="hotelName" placeholder="Hotel name" required>
+                </div>
+                <div class="form-group">
+                    <label>Destination ID</label>
+                    <select id="hotelDestinationId" required></select>
+                </div>
+                <div class="form-group">
+                    <label>Address</label>
+                    <input type="text" id="hotelAddress" placeholder="Address" required>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <input type="text" id="hotelDescription" placeholder="Description">
+                </div>
+                <div class="form-group">
+                    <label>Contact Number</label>
+                    <input type="text" id="hotelContact" placeholder="Contact number">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="hotelEmail" placeholder="Email">
+                </div>
+                <div class="form-group">
+                    <label>Star Rating</label>
+                    <input type="number" id="hotelStarRating" min="1" max="5" step="0.5" value="4.5" style="width:80px;">
+                </div>
+                <div id="createHotelMsg"></div>
+                <button class="primary" id="saveHotelBtn">Create Hotel</button>
+                <button id="cancelHotelBtn">Cancel</button>
+            </div>
+
+            <div id="hotelsList"></div>
+        </div>
+
+        <!-- Hotel Detail/Rooms Section -->
+        <div id="hotelDetailSection" class="hidden">
+            <button id="backToHotelsBtn">← Back to Hotels</button>
+            <h2 id="hotelDetailName" style="margin-top:12px;"></h2>
+            <p id="hotelDetailAddress" style="color:#555;font-size:0.9rem;"></p>
+            <p id="hotelDetailStatus" style="font-size:0.85rem;color:#888;"></p>
+
+            <div class="section-sep">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                    <h3>Rooms</h3>
+                    <button class="primary" id="createRoomBtn">+ Add Room</button>
+                </div>
+
+                <!-- Create Room Form -->
+                <div id="createRoomForm" class="hidden section-sep">
+                    <h4>Add Room</h4>
+                    <div class="form-group">
+                        <label>Room Number</label>
+                        <input type="text" id="roomNumber" placeholder="e.g. 101" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Room Type</label>
+                        <input type="text" id="roomType" placeholder="e.g. Standard, Deluxe, Suite" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Capacity</label>
+                        <input type="number" id="roomCapacity" min="1" value="2" required style="width:80px;">
+                    </div>
+                    <div class="form-group">
+                        <label>Price per Night</label>
+                        <input type="number" id="roomPrice" min="0" step="0.01" value="100" required style="width:120px;">
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="roomStatus" style="width:150px;">
+                            <option value="AVAILABLE">Available</option>
+                            <option value="OCCUPIED">Occupied</option>
+                            <option value="MAINTENANCE">Maintenance</option>
+                        </select>
+                    </div>
+                    <div id="createRoomMsg"></div>
+                    <button class="primary" id="saveRoomBtn">Add Room</button>
+                    <button id="cancelRoomBtn">Cancel</button>
+                </div>
+
+                <div id="roomsList"></div>
+            </div>
+
+            <div class="section-sep">
+                <div style="display:flex;gap:8px;">
+                    <button class="primary" id="updateHotelBtn">Update Hotel</button>
+                    <button class="danger" id="deactivateHotelBtn">Deactivate Hotel</button>
+                </div>
+                <div id="hotelActionMsg"></div>
+            </div>
+        </div>
+
+        <!-- My Bookings Section -->
+        <div id="bookingsSection" class="section-sep">
+            <h2>Bookings for My Hotels</h2>
+            <div id="bookingsList">
+                <p style="color:#888;">Loading...</p>
+            </div>
+        </div>
+
+        <!-- My Trips Section -->
+        <div id="tripsSection" class="section-sep">
+            <h2>Customer Trips for My Hotels</h2>
+            <div id="tripsList">
+                <p style="color:#888;">Loading...</p>
+            </div>
+        </div>
+    </div>
+    <script src="js/api.js"></script>
+    <script src="js/owner.js"></script>
+</body>
+</html>

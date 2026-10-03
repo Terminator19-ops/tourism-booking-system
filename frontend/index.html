@@ -12,8 +12,7 @@
         <p style="margin-top:10px;"><a href="login.html">Go to Login</a></p>
     </div>
     <script>
-        // Redirect to dashboard if logged in, else to login
-        if (localStorage.getItem('user')) {
+        if (localStorage.getItem('authToken')) {
             window.location.href = 'dashboard.html';
         } else {
             window.location.href = 'login.html';

@@ -1,81 +1,104 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (!user) { window.location.href = 'login.html'; return; }
+// Uses shared api.js for auth, API calls, and error handling
 
-    // Populate
-    function refreshDisplay() {
-        const u = JSON.parse(localStorage.getItem('user'));
-        document.getElementById('userName').textContent  = u.name;
-        document.getElementById('userEmail').textContent = u.email;
-    }
-    refreshDisplay();
+document.addEventListener('DOMContentLoaded', async () => {
+    const user = await loadCurrentUser();
+    if (!user) return;
 
-    // Edit profile toggle
+    setupRoleNavigation();
+
+    document.getElementById('userFirstName').textContent = user.first_name;
+    document.getElementById('userLastName').textContent = user.last_name;
+    document.getElementById('userEmail').textContent = user.email;
+    document.getElementById('userPhone').textContent = user.phone || 'N/A';
+    document.getElementById('userRole').textContent = user.role;
+
     document.getElementById('editProfileBtn').addEventListener('click', () => {
-        document.getElementById('editName').value = JSON.parse(localStorage.getItem('user')).name;
-        document.getElementById('editProfileForm').classList.toggle('hidden');
+        document.getElementById('editFirstName').value = user.first_name;
+        document.getElementById('editLastName').value = user.last_name;
+        document.getElementById('editPhone').value = user.phone || '';
+        document.getElementById('editProfileForm').classList.remove('hidden');
     });
+
     document.getElementById('cancelEditBtn').addEventListener('click', () => {
         document.getElementById('editProfileForm').classList.add('hidden');
     });
-    document.getElementById('saveProfileBtn').addEventListener('click', () => {
-        const name = document.getElementById('editName').value.trim();
-        const editMsg = document.getElementById('editMsg');
-        if (!name) { editMsg.textContent = 'Name cannot be empty.'; editMsg.className = 'msg-error'; return; }
 
-        const u = JSON.parse(localStorage.getItem('user'));
-        u.name = name;
-        localStorage.setItem('user', JSON.stringify(u));
+    document.getElementById('saveProfileBtn').addEventListener('click', async () => {
+        const firstName = document.getElementById('editFirstName').value.trim();
+        const lastName = document.getElementById('editLastName').value.trim();
+        const phone = document.getElementById('editPhone').value.trim();
 
-        editMsg.textContent = 'Profile updated!';
-        editMsg.className = 'msg-success';
-        refreshDisplay();
-        setTimeout(() => document.getElementById('editProfileForm').classList.add('hidden'), 800);
+        if (!firstName || !lastName || !phone) {
+            showMessage('editMsg', 'First name, last name and phone are required.', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('saveProfileBtn');
+        showLoading(btn, true);
+        showMessage('editMsg', '', 'success');
+
+        try {
+            const data = await apiFetch('/auth/me', {
+                method: 'PUT',
+                body: JSON.stringify({ first_name: firstName, last_name: lastName, phone })
+            });
+
+            localStorage.setItem('user', JSON.stringify(data));
+            showMessage('editMsg', 'Profile updated successfully!', 'success');
+            document.getElementById('userFirstName').textContent = data.first_name;
+            document.getElementById('userLastName').textContent = data.last_name;
+            document.getElementById('userPhone').textContent = data.phone || 'N/A';
+            setTimeout(() => document.getElementById('editProfileForm').classList.add('hidden'), 800);
+        } catch (error) {
+            showMessage('editMsg', handleApiError(error, 'Profile update failed.'), 'error');
+        } finally {
+            showLoading(btn, false);
+        }
     });
 
-    // Change password
-    document.getElementById('changePwdBtn').addEventListener('click', () => {
-        const oldPwd  = document.getElementById('oldPassword').value;
-        const newPwd  = document.getElementById('newPassword').value;
+    document.getElementById('changePwdBtn').addEventListener('click', async () => {
+        const oldPwd = document.getElementById('oldPassword').value;
+        const newPwd = document.getElementById('newPassword').value;
         const confPwd = document.getElementById('confirmPassword').value;
-        const pwdMsg  = document.getElementById('pwdMsg');
 
         if (!oldPwd || !newPwd || !confPwd) {
-            pwdMsg.textContent = 'All fields are required.'; pwdMsg.className = 'msg-error'; return;
+            showMessage('pwdMsg', 'All fields are required.', 'error');
+            return;
         }
 
-        // Check against stored users array (mock)
-        const u = JSON.parse(localStorage.getItem('user'));
-        const users = JSON.parse(localStorage.getItem('users') || '[]');
-        const stored = users.find(x => x.email === u.email);
-
-        if (stored && stored.password !== oldPwd) {
-            pwdMsg.textContent = 'Current password is incorrect.'; pwdMsg.className = 'msg-error'; return;
-        }
         if (newPwd !== confPwd) {
-            pwdMsg.textContent = 'New passwords do not match.'; pwdMsg.className = 'msg-error'; return;
-        }
-        if (newPwd.length < 4) {
-            pwdMsg.textContent = 'Password must be at least 4 characters.'; pwdMsg.className = 'msg-error'; return;
+            showMessage('pwdMsg', 'New passwords do not match.', 'error');
+            return;
         }
 
-        // Update in users store if registered
-        if (stored) {
-            stored.password = newPwd;
-            localStorage.setItem('users', JSON.stringify(users));
+        if (newPwd.length < 8) {
+            showMessage('pwdMsg', 'Password must be at least 8 characters.', 'error');
+            return;
         }
 
-        pwdMsg.textContent = 'Password changed successfully!';
-        pwdMsg.className = 'msg-success';
-        document.getElementById('oldPassword').value  = '';
-        document.getElementById('newPassword').value  = '';
-        document.getElementById('confirmPassword').value = '';
+        const btn = document.getElementById('changePwdBtn');
+        showLoading(btn, true);
+        showMessage('pwdMsg', '', 'success');
+
+        try {
+            await apiFetch('/auth/change-password', {
+                method: 'PUT',
+                body: JSON.stringify({ current_password: oldPwd, new_password: newPwd, confirm_password: confPwd })
+            });
+
+            showMessage('pwdMsg', 'Password changed successfully!', 'success');
+            document.getElementById('oldPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+        } catch (error) {
+            showMessage('pwdMsg', handleApiError(error, 'Password change failed.'), 'error');
+        } finally {
+            showLoading(btn, false);
+        }
     });
 
-    // Logout
-    document.getElementById('logoutBtn').addEventListener('click', () => {
-        localStorage.removeItem('user');
-        window.location.href = 'login.html';
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+        await logout();
     });
 });
 

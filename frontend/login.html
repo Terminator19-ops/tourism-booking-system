@@ -10,21 +10,37 @@
     <div class="container">
         <h1>Login</h1>
         <div id="loginSection">
+            <label for="loginRole">Role</label>
+            <select id="loginRole">
+                <option value="CUSTOMER">Customer</option>
+                <option value="OWNER">Owner</option>
+                <option value="ADMIN">Admin</option>
+            </select>
             <input type="email" id="email" placeholder="Email">
             <input type="password" id="password" placeholder="Password">
             <button id="loginBtn">Login</button>
-            <p><a href="#" id="showRegister">Register</a></p>
+            <p>Register as:</p>
+            <div style="display:flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">
+                <button id="registerCustomerBtn" type="button">Register as Customer</button>
+                <button id="registerOwnerBtn" type="button">Register as Owner</button>
+            </div>
         </div>
 
         <div id="registerSection" class="hidden">
-            <h2>Register</h2>
-            <input type="text" id="regName" placeholder="Name">
+            <h2 id="registerTitle">Register</h2>
+            <input type="text" id="regFirstName" placeholder="First name">
+            <input type="text" id="regLastName" placeholder="Last name">
             <input type="email" id="regEmail" placeholder="Email">
+            <input type="tel" id="regPhone" placeholder="Phone">
             <input type="password" id="regPassword" placeholder="Password">
-            <button id="registerBtn">Register</button>
+            <button id="registerBtn">Create Account</button>
             <p><a href="#" id="showLogin">Back to Login</a></p>
         </div>
+
+        <div id="loginMsg" class="msg"></div>
+        <div id="registerMsg" class="msg"></div>
     </div>
+    <script src="js/api.js"></script>
     <script src="js/login.js"></script>
 </body>
 </html>

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="nav">
+            <a href="dashboard.html">Dashboard</a>
+            <a href="profile.html">Profile</a>
+            <a href="admin.html" id="adminNavLink" class="hidden">Admin</a>
+            <button id="logoutBtn">Logout</button>
+        </div>
+
+        <h1 id="welcomeMessage">Admin Dashboard</h1>
+
+        <!-- Users -->
+        <div class="section-sep">
+            <h2>Manage Users</h2>
+            <form id="userForm">
+                <input type="text" id="userFirstName" placeholder="First name" required>
+                <input type="text" id="userLastName" placeholder="Last name" required>
+                <input type="email" id="userEmail" placeholder="Email" required>
+                <input type="tel" id="userPhone" placeholder="Phone" required>
+                <input type="password" id="userPassword" placeholder="Password" required>
+                <select id="userRole" required>
+                    <option value="CUSTOMER">Customer</option>
+                    <option value="OWNER">Owner</option>
+                    <option value="ADMIN">Admin</option>
+                </select>
+                <select id="userStatus" required>
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                </select>
+                <button type="submit">Add User</button>
+            </form>
+            <div id="userList"></div>
+        </div>
+
+        <!-- Destinations -->
+        <div class="section-sep">
+            <h2>Manage Destinations</h2>
+            <form id="destinationForm">
+                <input type="text" id="destinationName" placeholder="Destination name" required>
+                <input type="text" id="destinationCity" placeholder="City" required>
+                <input type="text" id="destinationCountry" placeholder="Country" required>
+                <input type="text" id="destinationState" placeholder="State (optional)">
+                <input type="text" id="destinationDescription" placeholder="Description (optional)">
+                <select id="destinationStatus" required>
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                </select>
+                <button type="submit">Add Destination</button>
+            </form>
+            <div id="destinationList"></div>
+        </div>
+
+        <!-- Hotels -->
+        <div class="section-sep">
+            <h2>Manage Hotels</h2>
+            <form id="hotelForm">
+                <select id="hotelDestinationId" required>
+                    <option value="">Select destination</option>
+                </select>
+                <input type="text" id="hotelName" placeholder="Hotel name" required>
+                <input type="text" id="hotelAddress" placeholder="Address" required>
+                <input type="text" id="hotelDescription" placeholder="Description (optional)">
+                <input type="text" id="hotelContact" placeholder="Contact number (optional)">
+                <input type="email" id="hotelEmail" placeholder="Email (optional)">
+                <input type="number" id="hotelStarRating" placeholder="Star rating" min="1" max="5" step="0.5" value="4.5">
+                <select id="hotelStatus" required>
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                </select>
+                <button type="submit">Add Hotel</button>
+            </form>
+            <div id="hotelList"></div>
+        </div>
+
+        <!-- Rooms -->
+        <div class="section-sep">
+            <h2>Manage Rooms</h2>
+            <form id="roomForm">
+                <input type="number" id="roomHotelId" placeholder="Hotel ID" required>
+                <input type="text" id="roomType" placeholder="Room type (e.g. Standard, Deluxe, Suite)" required>
+                <input type="text" id="roomDescription" placeholder="Description (optional)">
+                <input type="number" id="roomPrice" placeholder="Price per night" min="0" step="0.01" required>
+                <input type="number" id="roomCapacity" placeholder="Capacity" min="1" required>
+                <input type="text" id="roomAmenities" placeholder="Amenities (optional)">
+                <select id="roomStatus" required>
+                    <option value="AVAILABLE">Available</option>
+                    <option value="OCCUPIED">Occupied</option>
+                    <option value="MAINTENANCE">Maintenance</option>
+                    <option value="INACTIVE">Inactive</option>
+                </select>
+                <button type="submit">Add Room</button>
+            </form>
+            <div id="roomList"></div>
+        </div>
+
+        <!-- Activities -->
+        <div class="section-sep">
+            <h2>Manage Activities</h2>
+            <form id="activityForm">
+                <select id="activityDestinationId" required>
+                    <option value="">Select destination</option>
+                </select>
+                <input type="text" id="activityName" placeholder="Activity name" required>
+                <input type="text" id="activityDescription" placeholder="Description (optional)">
+                <input type="text" id="activityCategory" placeholder="Category" value="General">
+                <input type="number" id="activityDuration" placeholder="Duration (hours)" min="0.5" step="0.5" value="1">
+                <input type="number" id="activityPrice" placeholder="Price" min="0" step="0.01" required>
+                <input type="number" id="activityCapacity" placeholder="Capacity" min="1" value="1">
+                <select id="activityStatus" required>
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                </select>
+                <button type="submit">Add Activity</button>
+            </form>
+            <div id="activityList"></div>
+        </div>
+
+        <!-- Tour Packages -->
+        <div class="section-sep">
+            <h2>Manage Tour Packages</h2>
+            <form id="packageForm">
+                <input type="text" id="packageName" placeholder="Package name" required>
+                <input type="text" id="packageDescription" placeholder="Description (optional)">
+                <input type="number" id="packageDays" placeholder="Duration days" min="1" value="1">
+                <input type="number" id="packagePrice" placeholder="Price" min="0" step="0.01" value="0">
+                <input type="number" id="packageMaxCapacity" placeholder="Max capacity (optional)">
+                <select id="packageStatus" required>
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                </select>
+                <button type="submit">Add Package</button>
+            </form>
+            <div id="packageList"></div>
+        </div>
+
+        <!-- Package Destinations -->
+        <div class="section-sep">
+            <h2>Manage Package Destinations</h2>
+            <form id="packageDestinationForm">
+                <input type="number" id="pkgDestPackageId" placeholder="Package ID" required>
+                <select id="pkgDestDestinationId" required>
+                    <option value="">Select destination</option>
+                </select>
+                <input type="number" id="pkgDestVisitOrder" placeholder="Visit order" min="1" required>
+                <input type="number" id="pkgDestDays" placeholder="Days" min="1" required>
+                <button type="submit">Add Destination to Package</button>
+            </form>
+            <div id="packageDestinationList"></div>
+        </div>
+
+        <!-- Package Activities -->
+        <div class="section-sep">
+            <h2>Manage Package Activities</h2>
+            <form id="packageActivityForm">
+                <input type="number" id="pkgActPackageId" placeholder="Package ID" required>
+                <input type="number" id="pkgActActivityId" placeholder="Activity ID" required>
+                <input type="number" id="pkgActDay" placeholder="Activity day" min="1" required>
+                <button type="submit">Add Activity to Package</button>
+            </form>
+            <div id="packageActivityList"></div>
+        </div>
+
+        <!-- Travel Segments -->
+        <div class="section-sep">
+            <h2>Manage Travel Segments</h2>
+            <form id="travelSegmentForm">
+                <select id="tsOriginId" required>
+                    <option value="">Select origin destination</option>
+                </select>
+                <select id="tsDestinationId" required>
+                    <option value="">Select destination</option>
+                </select>
+                <input type="text" id="tsTransportType" placeholder="Transport type (Flight, Train, Bus)" required>
+                <input type="text" id="tsOperator" placeholder="Operator name (optional)">
+                <input type="datetime-local" id="tsDeparture" required>
+                <input type="datetime-local" id="tsArrival" required>
+                <input type="number" id="tsDuration" placeholder="Duration (hours)" min="0.5" step="0.5" required>
+                <input type="number" id="tsPrice" placeholder="Price" min="0" step="0.01" required>
+                <input type="number" id="tsCapacity" placeholder="Capacity" min="1" required>
+                <select id="tsStatus" required>
+                    <option value="SCHEDULED">Scheduled</option>
+                    <option value="CANCELLED">Cancelled</option>
+                    <option value="COMPLETED">Completed</option>
+                </select>
+                <button type="submit">Add Travel Segment</button>
+            </form>
+            <div id="travelSegmentList"></div>
+        </div>
+
+        <!-- Trips -->
+        <div class="section-sep">
+            <h2>Manage Trips</h2>
+            <div id="tripList"></div>
+        </div>
+
+        <!-- Bookings -->
+        <div class="section-sep">
+            <h2>Manage Bookings</h2>
+            <div id="bookingList"></div>
+        </div>
+
+        <!-- Reports -->
+        <div class="section-sep">
+            <h2>Manage Reports</h2>
+            <form id="reportForm">
+                <input type="number" id="reportUserId" placeholder="User ID" required>
+                <input type="text" id="reportType" placeholder="Report type" required>
+                <input type="text" id="reportTitle" placeholder="Title" required>
+                <textarea id="reportContent" placeholder="Content" required style="width:100%;height:80px;"></textarea>
+                <select id="reportStatus" required>
+                    <option value="PENDING">Pending</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="ARCHIVED">Archived</option>
+                </select>
+                <button type="submit">Add Report</button>
+            </form>
+            <div id="reportList"></div>
+        </div>
+
+        <!-- Audit Logs -->
+        <div class="section-sep">
+            <h2>Audit Logs</h2>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+                <input type="text" id="auditEntityFilter" placeholder="Entity name filter" style="width:150px;">
+                <input type="text" id="auditActionFilter" placeholder="Action filter" style="width:150px;">
+                <input type="number" id="auditUserFilter" placeholder="User ID filter" style="width:100px;">
+                <button id="auditFilterBtn">Filter</button>
+                <button id="auditClearBtn">Clear</button>
+            </div>
+            <div id="auditLogList"></div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>

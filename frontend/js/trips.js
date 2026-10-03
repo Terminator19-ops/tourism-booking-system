@@ -1,175 +1,336 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (!user) { window.location.href = 'login.html'; return; }
+// Uses shared api.js for auth, API calls, and error handling
 
-    // ── Persistent mock data (seed once) ──────────────────────────────────
-    const TRIPS_KEY = 'mock_trips';
+let currentTripId = null;
 
-    function getTrips() {
-        const stored = localStorage.getItem(TRIPS_KEY);
-        if (stored) return JSON.parse(stored);
-        const seed = [
-            {
-                id: 1, name: 'Summer Vacation', desc: 'Trip to Europe',
-                start: '2026-06-01', end: '2026-06-15',
-                destinations: ['Paris', 'Rome'],
-                bookings: [
-                    { type: 'Hotel',    detail: 'Grand Plaza, Paris – 5 nights' },
-                    { type: 'Activity', detail: 'Eiffel Tower Tour' }
-                ],
-                review: null
-            },
-            {
-                id: 2, name: 'Business Trip', desc: 'Conference in New York',
-                start: '2026-08-10', end: '2026-08-14',
-                destinations: ['New York'],
-                bookings: [
-                    { type: 'Hotel',  detail: 'Midtown Suites – 4 nights' },
-                    { type: 'Travel', detail: 'London → New York (Flight)' }
-                ],
-                review: { rating: 4, comment: 'Great conference venue.' }
-            }
-        ];
-        localStorage.setItem(TRIPS_KEY, JSON.stringify(seed));
-        return seed;
-    }
+const listView = document.getElementById('listView');
+const detailView = document.getElementById('detailView');
+const tripListContainer = document.getElementById('tripListContainer');
+const createTripForm = document.getElementById('createTripForm');
+const createTripMsg = document.getElementById('createTripMsg');
 
-    function saveTrips(trips) { localStorage.setItem(TRIPS_KEY, JSON.stringify(trips)); }
+document.addEventListener('DOMContentLoaded', async () => {
+    const user = await loadCurrentUser();
+    if (!user) return;
 
-    // ── DOM refs ─────────────────────────────────────────────────────────
-    const listView         = document.getElementById('listView');
-    const detailView       = document.getElementById('detailView');
-    const tripListContainer= document.getElementById('tripListContainer');
-    const createTripForm   = document.getElementById('createTripForm');
-    const createTripMsg    = document.getElementById('createTripMsg');
+    if (!requireRole(['CUSTOMER', 'ADMIN'])) return;
 
-    // ── Render trip list ──────────────────────────────────────────────────
-    function renderList() {
-        const trips = getTrips();
-        tripListContainer.innerHTML = '';
-        if (!trips.length) {
-            tripListContainer.innerHTML = '<p style="color:#888;">No trips yet. Create one!</p>';
-            return;
-        }
-        trips.forEach(t => {
-            const d = document.createElement('div');
-            d.className = 'list-item';
-            d.innerHTML = `
-                <strong>${t.name}</strong>
-                <p>${t.desc}</p>
-                <p style="font-size:0.8rem;color:#888;">${t.start} → ${t.end}</p>
-                <button onclick="openDetail(${t.id})">View Details</button>
-            `;
-            tripListContainer.appendChild(d);
-        });
-    }
+    setupRoleNavigation();
 
-    // ── Create trip ───────────────────────────────────────────────────────
+    await loadTrips();
+
+    // Create trip
     document.getElementById('createTripBtn').addEventListener('click', () => {
         createTripForm.classList.toggle('hidden');
+        createTripMsg.textContent = '';
     });
     document.getElementById('cancelTripBtn').addEventListener('click', () => {
         createTripForm.classList.add('hidden');
     });
-    document.getElementById('saveTripBtn').addEventListener('click', () => {
-        const name  = document.getElementById('tripNameInput').value.trim();
-        const desc  = document.getElementById('tripDescInput').value.trim();
-        const start = document.getElementById('tripStartInput').value;
-        const end   = document.getElementById('tripEndInput').value;
-
-        if (!name) { createTripMsg.textContent = 'Trip name required.'; createTripMsg.className = 'msg-error'; return; }
-
-        const trips = getTrips();
-        trips.push({ id: Date.now(), name, desc, start, end, destinations: [], bookings: [], review: null });
-        saveTrips(trips);
-
-        createTripMsg.textContent = 'Trip created!';
-        createTripMsg.className = 'msg-success';
-        document.getElementById('tripNameInput').value = '';
-        document.getElementById('tripDescInput').value = '';
-        createTripForm.classList.add('hidden');
-        renderList();
+    document.getElementById('saveTripBtn').addEventListener('click', async () => {
+        await createTrip();
     });
 
-    // ── Detail view ───────────────────────────────────────────────────────
-    window.openDetail = function(id) {
-        const trips = getTrips();
-        const t = trips.find(x => x.id === id);
-        if (!t) return;
-
-        document.getElementById('detailTripName').textContent = t.name;
-        document.getElementById('detailTripDesc').textContent = t.desc;
-        document.getElementById('detailTripDates').textContent = `${t.start}  →  ${t.end}`;
-
-        // Destinations
-        renderDests(t);
-        // Bookings
-        renderBookings(t);
-        // Review
-        renderReview(t);
-
-        listView.classList.add('hidden');
-        detailView.classList.remove('hidden');
-
-        // Wire add-dest
-        document.getElementById('addDestBtn').onclick = () => document.getElementById('addDestForm').classList.toggle('hidden');
-        document.getElementById('cancelDestBtn').onclick = () => document.getElementById('addDestForm').classList.add('hidden');
-        document.getElementById('saveDestBtn').onclick = () => {
-            const val = document.getElementById('destNameInput').value.trim();
-            if (!val) return;
-            const trips2 = getTrips();
-            const t2 = trips2.find(x => x.id === id);
-            t2.destinations.push(val);
-            saveTrips(trips2);
-            document.getElementById('destNameInput').value = '';
-            document.getElementById('addDestForm').classList.add('hidden');
-            renderDests(t2);
-        };
-
-        // Wire review
-        document.getElementById('addReviewBtn').onclick = () => document.getElementById('reviewForm').classList.toggle('hidden');
-        document.getElementById('cancelReviewBtn').onclick = () => document.getElementById('reviewForm').classList.add('hidden');
-        document.getElementById('saveReviewBtn').onclick = () => {
-            const rating  = parseInt(document.getElementById('reviewRating').value) || 0;
-            const comment = document.getElementById('reviewComment').value.trim();
-            if (rating < 1 || rating > 5) { alert('Rating must be 1–5.'); return; }
-            const trips2 = getTrips();
-            const t2 = trips2.find(x => x.id === id);
-            t2.review = { rating, comment };
-            saveTrips(trips2);
-            document.getElementById('reviewForm').classList.add('hidden');
-            renderReview(t2);
-        };
-    };
-
-    function renderDests(t) {
-        const ul = document.getElementById('destList');
-        ul.innerHTML = t.destinations.length
-            ? t.destinations.map(d => `<li>${d}</li>`).join('')
-            : '<li style="color:#888;">No destinations added.</li>';
-    }
-
-    function renderBookings(t) {
-        const div = document.getElementById('bookingList');
-        div.innerHTML = t.bookings.length
-            ? t.bookings.map(b => `<div class="list-item"><strong>${b.type}</strong><p>${b.detail}</p></div>`).join('')
-            : '<p style="color:#888;">No bookings yet.</p>';
-    }
-
-    function renderReview(t) {
-        const div = document.getElementById('reviewDisplay');
-        div.innerHTML = t.review
-            ? `<p><strong>Rating:</strong> ${t.review.rating}/5</p><p>${t.review.comment}</p>`
-            : '<p style="color:#888;">No review yet.</p>';
-    }
-
+    // Back to list
     document.getElementById('backToListBtn').addEventListener('click', () => {
         detailView.classList.add('hidden');
         listView.classList.remove('hidden');
-        renderList();
+        currentTripId = null;
     });
 
-    // ── Init ─────────────────────────────────────────────────────────────
-    renderList();
+    // Add destination
+    document.getElementById('addDestBtn').addEventListener('click', async () => {
+        document.getElementById('addDestForm').classList.toggle('hidden');
+        if (!document.getElementById('addDestForm').classList.contains('hidden')) {
+            await loadDestinationsForSelect();
+        }
+    });
+    document.getElementById('cancelDestBtn').addEventListener('click', () => {
+        document.getElementById('addDestForm').classList.add('hidden');
+    });
+    document.getElementById('saveDestBtn').addEventListener('click', async () => {
+        await addTripDestination();
+    });
+
+    // Review
+    document.getElementById('addReviewBtn').addEventListener('click', () => {
+        document.getElementById('reviewForm').classList.toggle('hidden');
+    });
+    document.getElementById('cancelReviewBtn').addEventListener('click', () => {
+        document.getElementById('reviewForm').classList.add('hidden');
+    });
+    document.getElementById('saveReviewBtn').addEventListener('click', async () => {
+        await submitReview();
+    });
 });
+
+async function loadTrips() {
+    tripListContainer.innerHTML = '<p style="color:#888;">Loading trips...</p>';
+    try {
+        const trips = await apiFetch('/customer/trips');
+        renderTripList(trips);
+    } catch (error) {
+        tripListContainer.innerHTML = `<p style="color:red;">${handleApiError(error, 'Failed to load trips.')}</p>`;
+    }
+}
+
+function renderTripList(trips) {
+    tripListContainer.innerHTML = '';
+    if (!trips.length) {
+        tripListContainer.innerHTML = '<p style="color:#888;">No trips yet. Create one!</p>';
+        return;
+    }
+    trips.forEach(t => {
+        const d = document.createElement('div');
+        d.className = 'list-item';
+        d.innerHTML = `
+            <strong>${t.trip_name}</strong>
+            <p>${formatDate(t.start_date)} → ${formatDate(t.end_date)}</p>
+            <p style="font-size:0.8rem;color:#888;">Status: ${t.status}</p>
+            <button onclick="openDetail(${t.trip_id})">View Details</button>
+        `;
+        tripListContainer.appendChild(d);
+    });
+}
+
+async function createTrip() {
+    const name = document.getElementById('tripNameInput').value.trim();
+    const desc = document.getElementById('tripDescInput').value.trim();
+    const start = document.getElementById('tripStartInput').value;
+    const end = document.getElementById('tripEndInput').value;
+
+    if (!name) { 
+        showMessage('createTripMsg', 'Trip name required.', 'error'); 
+        return; 
+    }
+    if (!start || !end) {
+        showMessage('createTripMsg', 'Start and end dates are required.', 'error');
+        return;
+    }
+    if (end < start) {
+        showMessage('createTripMsg', 'End date must be after start date.', 'error');
+        return;
+    }
+
+    const btn = document.getElementById('saveTripBtn');
+    showLoading(btn, true);
+    showMessage('createTripMsg', '', 'success');
+
+    try {
+        const data = await apiFetch('/customer/trips', {
+            method: 'POST',
+            body: JSON.stringify({
+                trip_name: name,
+                start_date: start,
+                end_date: end
+            })
+        });
+
+        showMessage('createTripMsg', `Trip created! ID: ${data.trip_id}`, 'success');
+        document.getElementById('tripNameInput').value = '';
+        document.getElementById('tripDescInput').value = '';
+        document.getElementById('tripStartInput').value = '';
+        document.getElementById('tripEndInput').value = '';
+        createTripForm.classList.add('hidden');
+        await loadTrips();
+        
+        if (typeof loadDashboardData === 'function') {
+            loadDashboardData();
+        }
+    } catch (error) {
+        showMessage('createTripMsg', handleApiError(error, 'Failed to create trip.'), 'error');
+    } finally {
+        showLoading(btn, false);
+    }
+}
+
+window.openDetail = async function(id) {
+    currentTripId = id;
+    
+    try {
+        const trip = await apiFetch(`/customer/trips/${id}`);
+        
+        document.getElementById('detailTripName').textContent = trip.trip_name;
+        document.getElementById('detailTripDesc').textContent = 'Trip details';
+        document.getElementById('detailTripDates').textContent = `${formatDate(trip.start_date)} → ${formatDate(trip.end_date)} (Status: ${trip.status})`;
+
+        // Destinations
+        renderDestinations(trip.destinations || []);
+        // Bookings
+        renderBookings(trip.bookings || []);
+        // Review
+        renderReview(trip);
+
+        listView.classList.add('hidden');
+        detailView.classList.remove('hidden');
+        
+        // Reset forms
+        document.getElementById('addDestForm').classList.add('hidden');
+        document.getElementById('reviewForm').classList.add('hidden');
+        document.getElementById('destNameInput').value = '';
+        document.getElementById('destVisitOrder').value = '';
+        document.getElementById('destArrivalDate').value = '';
+        document.getElementById('destDepartureDate').value = '';
+    } catch (error) {
+        showMessage('bookingMsg', handleApiError(error, 'Failed to load trip details.'), 'error');
+    }
+};
+
+function renderDestinations(destinations) {
+    const ul = document.getElementById('destList');
+    if (!destinations.length) {
+        ul.innerHTML = '<li style="color:#888;">No destinations added.</li>';
+        return;
+    }
+    ul.innerHTML = destinations.map(d => 
+        `<li>${d.name} (Day ${d.visit_order}, ${formatDate(d.arrival_date)} → ${formatDate(d.departure_date)})</li>`
+    ).join('');
+}
+
+function renderBookings(bookings) {
+    const div = document.getElementById('bookingList');
+    if (!bookings.length) {
+        div.innerHTML = '<p style="color:#888;">No bookings yet.</p>';
+        return;
+    }
+    div.innerHTML = bookings.map(b => {
+        let detail = '';
+        if (b.booking_type === 'HOTEL') {
+            detail = `${b.hotel_name || 'Hotel'} - Room ${b.room_number || ''} (${formatDate(b.check_in_date)} → ${formatDate(b.check_out_date)}, ${b.number_of_guests} guests)`;
+        } else if (b.booking_type === 'PACKAGE') {
+            detail = `${b.package_name || 'Package'} (${formatDate(b.travel_date)}, ${b.number_of_people} people)`;
+        } else if (b.booking_type === 'ACTIVITY') {
+            detail = `${b.activity_name || 'Activity'} (${formatDate(b.activity_date)}, ${b.act_people || b.number_of_people} people)`;
+        } else if (b.booking_type === 'TRAVEL') {
+            detail = `${b.transport_type || 'Travel'} ${b.origin || ''} → ${b.destination || ''} (${formatDateTime(b.departure_time)}, ${b.number_of_passengers} passengers)`;
+        }
+        return `
+            <div class="list-item">
+                <strong>${b.booking_type} Booking</strong>
+                <p>${detail}</p>
+                <p style="font-size:0.8rem;color:#888;">${formatCurrency(b.total_amount)} | Status: ${b.status} | Booking ID: ${b.booking_id}</p>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderReview(trip) {
+    const div = document.getElementById('reviewDisplay');
+    // Check if trip has a review (would need a separate API call or be included in trip details)
+    // For now, show a placeholder
+    div.innerHTML = '<p style="color:#888;">No review yet. Click "Write Review" to add one.</p>';
+}
+
+async function addTripDestination() {
+    if (!currentTripId) return;
+    
+    const destinationId = document.getElementById('destSelect').value;
+    const visitOrder = document.getElementById('destVisitOrder').value;
+    const arrivalDate = document.getElementById('destArrivalDate').value;
+    const departureDate = document.getElementById('destDepartureDate').value;
+    
+    if (!destinationId || !visitOrder || !arrivalDate || !departureDate) {
+        showMessage('bookingMsg', 'All fields are required.', 'error');
+        return;
+    }
+    if (departureDate < arrivalDate) {
+        showMessage('bookingMsg', 'Departure date must be after arrival date.', 'error');
+        return;
+    }
+
+    const btn = document.getElementById('saveDestBtn');
+    showLoading(btn, true);
+    showMessage('bookingMsg', '', 'success');
+
+    try {
+        await apiFetch(`/customer/trips/${currentTripId}/destinations`, {
+            method: 'POST',
+            body: JSON.stringify({
+                destination_id: parseInt(destinationId),
+                visit_order: parseInt(visitOrder),
+                arrival_date: arrivalDate,
+                departure_date: departureDate
+            })
+        });
+
+        showMessage('bookingMsg', 'Destination added to trip successfully!', 'success');
+        document.getElementById('addDestForm').classList.add('hidden');
+        document.getElementById('destSelect').value = '';
+        document.getElementById('destVisitOrder').value = '1';
+        document.getElementById('destArrivalDate').value = '';
+        document.getElementById('destDepartureDate').value = '';
+        
+        // Reload trip to show new destination
+        const trip = await apiFetch(`/customer/trips/${currentTripId}`);
+        renderDestinations(trip.destinations || []);
+    } catch (error) {
+        showMessage('bookingMsg', handleApiError(error, 'Failed to add destination.'), 'error');
+    } finally {
+        showLoading(btn, false);
+    }
+}
+
+async function loadDestinationsForSelect() {
+    try {
+        // We need to fetch destinations - there's no direct customer endpoint for this
+        // But we can use the admin endpoint or we need to add one
+        // For now, let's try to get destinations from the hotel list which includes destination info
+        const hotels = await apiFetch('/customer/hotels');
+        const destinations = [...new Map(hotels.map(h => [h.destination_id, {id: h.destination_id, name: h.destination_name, city: h.city, country: h.country}])).values()];
+        
+        const select = document.getElementById('destSelect');
+        select.innerHTML = '<option value="">Select destination</option>';
+        destinations.forEach(d => {
+            if (d.name) {
+                const option = document.createElement('option');
+                option.value = d.id;
+                option.textContent = `${d.name}${d.city ? ', ' + d.city : ''}${d.country ? ', ' + d.country : ''}`;
+                select.appendChild(option);
+            }
+        });
+    } catch (error) {
+        console.error('Failed to load destinations:', error);
+        const select = document.getElementById('destSelect');
+        select.innerHTML = '<option value="">Failed to load destinations</option>';
+    }
+}
+
+async function submitReview() {
+    if (!currentTripId) return;
+    
+    const rating = parseInt(document.getElementById('reviewRating').value) || 0;
+    const comment = document.getElementById('reviewComment').value.trim();
+    
+    if (rating < 1 || rating > 5) { 
+        showMessage('reviewDisplay', 'Rating must be 1–5.', 'error'); 
+        return; 
+    }
+
+    const btn = document.getElementById('saveReviewBtn');
+    showLoading(btn, true);
+    showMessage('reviewDisplay', '', 'success');
+
+    try {
+        await apiFetch('/customer/reviews', {
+            method: 'POST',
+            body: JSON.stringify({
+                trip_id: currentTripId,
+                rating: rating,
+                comment: comment
+            })
+        });
+
+        showMessage('reviewDisplay', 'Review submitted successfully!', 'success');
+        document.getElementById('reviewForm').classList.add('hidden');
+        document.getElementById('reviewRating').value = '';
+        document.getElementById('reviewComment').value = '';
+        
+        // Reload trip to show review
+        const trip = await apiFetch(`/customer/trips/${currentTripId}`);
+        renderReview(trip);
+    } catch (error) {
+        showMessage('reviewDisplay', handleApiError(error, 'Failed to submit review.'), 'error');
+    } finally {
+        showLoading(btn, false);
+    }
+}
 

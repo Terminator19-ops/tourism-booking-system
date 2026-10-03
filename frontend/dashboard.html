@@ -16,12 +16,34 @@
             <a href="travel.html">Travel</a>
             <a href="activities.html">Activities</a>
             <a href="profile.html">Profile</a>
+            <a href="admin.html" id="adminNavLink" class="hidden">Admin</a>
             <button id="logoutBtn">Logout</button>
         </div>
 
         <h1 id="welcomeMessage">Welcome!</h1>
-        <p>This is your dashboard. Use the navigation links above to manage your bookings and trips.</p>
+
+        <div class="section-sep">
+            <h2>Upcoming Trips</h2>
+            <div id="upcomingTrips">
+                <p style="color:#888;">Loading...</p>
+            </div>
+        </div>
+
+        <div class="section-sep">
+            <h2>Recent Bookings</h2>
+            <div id="recentBookings">
+                <p style="color:#888;">Loading...</p>
+            </div>
+        </div>
+
+        <div class="section-sep">
+            <h2>Recent Payments</h2>
+            <div id="recentPayments">
+                <p style="color:#888;">Loading...</p>
+            </div>
+        </div>
     </div>
+    <script src="js/api.js"></script>
     <script src="js/dashboard.js"></script>
 </body>
 </html>

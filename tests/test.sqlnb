@@ -1,0 +1,6 @@
+cells:
+  - kind: 2
+    value: |-
+      SELECT *
+      FROM APP_USER;
+    languageId: oracle-sql
