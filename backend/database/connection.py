@@ -7,8 +7,7 @@ import oracledb
 BASE_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(BASE_DIR / ".env")
 
-WALLET_DIR = (BASE_DIR / os.getenv("WALLET_DIR", "wallet")).resolve()
-
+WALLET_DIR = Path(__file__).resolve().parents[2] / "wallet"
 
 def get_connection():
     return oracledb.connect(

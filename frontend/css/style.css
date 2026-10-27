@@ -1,46 +1,191 @@
-/* Base */
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: sans-serif; background: #f5f5f5; color: #222; padding: 20px; }
-h1 { font-size: 1.5rem; margin-bottom: 12px; }
-h2 { font-size: 1.2rem; margin-bottom: 10px; }
-h3 { font-size: 1rem; margin-bottom: 8px; }
+/* =========================================
+   MODERN DESIGN SYSTEM (Tourism Platform)
+   ========================================= */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-/* Container */
-.container { max-width: 820px; margin: 0 auto; background: #fff; padding: 20px; border: 1px solid #ddd; }
-
-/* Nav */
-.nav { margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid #ccc; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-.nav a { text-decoration: none; color: #0066cc; font-size: 0.9rem; }
-.nav a:hover { text-decoration: underline; }
-
-/* Inputs */
-input[type="text"], input[type="email"], input[type="password"], input[type="date"], input[type="number"], select {
-    display: block; width: 260px; padding: 7px 9px; margin: 6px 0; border: 1px solid #bbb; font-size: 0.9rem;
+:root {
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --bg-color: #f8fafc;
+    --surface: #ffffff;
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --danger: #ef4444;
+    --success: #10b981;
+    --radius: 8px;
+    --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
-input::placeholder { color: #999; }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    line-height: 1.5;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Navbar */
+.nav {
+    background: var(--surface);
+    padding: 16px 24px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 24px;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.nav a {
+    text-decoration: none;
+    color: var(--text-main);
+    font-weight: 500;
+    font-size: 0.95rem;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.nav a:hover {
+    background: var(--bg-color);
+    color: var(--primary);
+}
+
+/* Headings */
+h1 { font-size: 2rem; font-weight: 700; margin-bottom: 24px; color: #0f172a; }
+h2 { font-size: 1.4rem; font-weight: 600; margin-bottom: 16px; color: #1e293b; }
+h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; }
+
+/* Sections / Cards */
+.section-sep {
+    background: var(--surface);
+    padding: 24px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 24px;
+}
+
+/* Forms & Inputs */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 16px;
+}
+
+label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+
+input, select, textarea {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background: var(--surface);
+    color: var(--text-main);
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
 
 /* Buttons */
-button { padding: 7px 13px; margin: 4px 4px 4px 0; cursor: pointer; font-size: 0.9rem; border: 1px solid #888; background: #fff; }
-button:hover { background: #eee; }
-button.primary { background: #0066cc; color: #fff; border-color: #0055aa; }
-button.primary:hover { background: #0055aa; }
-button.danger { background: #cc3300; color: #fff; border-color: #aa2200; }
+button {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--bg-color);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+}
 
-/* List items */
-.list-item { border: 1px solid #ccc; padding: 12px; margin-bottom: 10px; background: #fafafa; }
-.list-item p { margin-bottom: 4px; font-size: 0.9rem; }
+button:hover { background: #e2e8f0; }
 
-/* Messages */
-.msg-success { color: green; font-size: 0.9rem; margin: 6px 0; }
-.msg-error   { color: red;   font-size: 0.9rem; margin: 6px 0; }
+button.primary {
+    background: var(--primary);
+    color: white;
+    border: none;
+}
+button.primary:hover { background: var(--primary-hover); }
 
-/* Section separator */
-.section-sep { margin-top: 20px; padding-top: 14px; border-top: 1px solid #eee; }
+button.danger {
+    background: var(--danger);
+    color: white;
+    border: none;
+}
+button.danger:hover { background: #dc2626; }
 
-/* Hidden */
+/* Inline Forms (like Admin Dashboard) */
+form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+    background: var(--bg-color);
+    padding: 16px;
+    border-radius: var(--radius);
+    margin-bottom: 24px;
+}
+
+form input, form select {
+    flex: 1 1 200px;
+    margin: 0;
+}
+
+form button[type="submit"] {
+    background: var(--primary);
+    color: white;
+    border: none;
+    flex: 0 0 auto;
+}
+form button[type="submit"]:hover { background: var(--primary-hover); }
+
+/* Lists / Tables */
+div[id$="List"], div[id$="Container"] {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.list-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 16px;
+    border-radius: var(--radius);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.list-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+}
+
+/* Utilities */
 .hidden { display: none !important; }
-
-/* Form group */
-.form-group { margin-top: 14px; }
-.form-group label { display: block; font-size: 0.85rem; margin-bottom: 3px; }
-
+.msg { padding: 12px; border-radius: 6px; margin-top: 12px; font-size: 0.9rem; }
+.msg:not(:empty) { background: #fef2f2; color: var(--danger); border: 1px solid #fecaca; }
