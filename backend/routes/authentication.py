@@ -22,6 +22,12 @@ from backend.utils.authentication import (
     verify_password,
 )
 
+import hmac
+import os
+import secrets
+from pydantic import BaseModel
+from backend.utils.audit import log_audit
+
 router = APIRouter(prefix="/api/auth")
 
 
@@ -171,9 +177,11 @@ async def login(payload: LoginRequest):
     email = payload.email.strip().lower()
     selected_role = normalize_role(payload.role)
 
-    if selected_role not in {"CUSTOMER", "OWNER", "ADMIN"}:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Role must be CUSTOMER, OWNER, or ADMIN.")
-
+    if selected_role == "ADMIN":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Administrators must use the admin login page.")
+    if selected_role not in {"CUSTOMER", "OWNER"}:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Role must be CUSTOMER or OWNER.")
+    
     user_record = _fetch_user_by_email(email)
     if not user_record:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password.")
@@ -274,3 +282,48 @@ async def logout(authorization: Optional[str] = Header(default=None, alias="Auth
 @router.get("/health")
 async def health_check():
     return {"status": "ok"}
+
+class AdminLoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+def _ensure_builtin_admin(email: str):
+    """Make sure the built-in admin has a real APP_USER row (needed for audit-log foreign keys)."""
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT USER_ID FROM APP_USER WHERE EMAIL = :email", {"email": email})
+            row = cur.fetchone()
+            if row:
+                cur.execute("UPDATE APP_USER SET ROLE='ADMIN', STATUS='ACTIVE' WHERE USER_ID=:uid", {"uid": row[0]})
+            else:
+                cur.execute("SELECT NVL(MAX(USER_ID),0)+1 FROM APP_USER")
+                new_id = cur.fetchone()[0]
+                cur.execute(
+                    """
+                    INSERT INTO APP_USER (USER_ID, FIRST_NAME, LAST_NAME, EMAIL, PHONE, PASSWORD_HASH, ROLE, STATUS, CREATED_AT)
+                    VALUES (:uid, 'System', 'Admin', :email, '0000000000', :pw, 'ADMIN', 'ACTIVE', CURRENT_TIMESTAMP)
+                    """,
+                    {"uid": new_id, "email": email, "pw": hash_password(secrets.token_urlsafe(24))},
+                )
+            conn.commit()
+    return _fetch_user_by_email(email)
+
+
+@router.post("/admin/login", response_model=AuthTokenResponse)
+async def admin_login(payload: AdminLoginRequest):
+    admin_email = (os.getenv("ADMIN_EMAIL") or "").strip().lower()
+    admin_password = os.getenv("ADMIN_PASSWORD") or ""
+    if not admin_email or not admin_password:
+        raise HTTPException(status_code=503, detail="Admin login is not configured.")
+
+    email_ok = hmac.compare_digest(payload.email.strip().lower().encode(), admin_email.encode())
+    pw_ok = hmac.compare_digest(payload.password.encode(), admin_password.encode())
+    if not (email_ok and pw_ok):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid admin credentials.")
+
+    user_record = _ensure_builtin_admin(admin_email)
+    user_payload = serialize_user(user_record)
+    token = create_session(user_payload)
+    await log_audit(user_payload["user_id"], "LOGIN", "APP_USER", user_payload["user_id"], None, "Admin login")
+    return AuthTokenResponse(access_token=token, user=UserPublic(**user_payload))

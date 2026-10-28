@@ -1,5 +1,5 @@
 // Uses shared api.js for auth, API calls, and error handling
-
+let sharedTripId = null;
 let allActivities = [];
 let currentActId = null;
 
@@ -111,12 +111,16 @@ async function bookActivity() {
     showMessage('bookMsg', '', 'success');
 
     try {
+        const act = allActivities.find(x => x.activity_id === currentActId);
+        const tripName = act
+            ? `${act.name} in ${act.destination_name || ''}`.trim().slice(0, 100)
+            : 'Activity';
         // First, create a trip for this booking
         console.log('Creating trip...');
         const tripData = await apiFetch('/customer/trips', {
             method: 'POST',
             body: JSON.stringify({
-                trip_name: `Activity Booking ${new Date().toLocaleDateString()}`,
+                trip_name: tripName,
                 start_date: date,
                 end_date: date
             })

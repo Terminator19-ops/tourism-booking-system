@@ -1,5 +1,5 @@
 // Uses shared api.js for auth, API calls, and error handling
-
+let sharedTripId = null;
 let currentHotelId = null;
 let currentRoomId = null;
 let allHotels = [];
@@ -163,14 +163,16 @@ async function bookRoom() {
     const btn = document.getElementById('confirmBookBtn');
     showLoading(btn, true);
     showMessage('bookingMsg', '', 'success');
-
+    
     try {
+        const hotel = allHotels.find(h => h.hotel_id === currentHotelId);
+        const tripName = hotel ? `Stay at ${hotel.name}`.slice(0, 100) : 'Hotel stay';
         // First, create a trip for this booking
         console.log('Creating trip...');
         const tripData = await apiFetch('/customer/trips', {
             method: 'POST',
             body: JSON.stringify({
-                trip_name: `Hotel Booking ${new Date().toLocaleDateString()}`,
+                trip_name: tripName,
                 start_date: ci,
                 end_date: co
             })

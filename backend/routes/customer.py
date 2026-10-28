@@ -13,7 +13,7 @@ from backend.schemas.authentication import (
     TripCreateRequest,
     TripResponse,
 )
-from backend.utils.audit import log_create
+from backend.utils.audit import log_create, log_audit
 from backend.utils.authorization import get_current_user, require_customer
 
 router = APIRouter(prefix="/api/customer")
@@ -222,39 +222,45 @@ async def create_trip(payload: TripCreateRequest, current_user: Dict[str, Any] =
         bookings=[]
     )
 
-
 @router.get("/trips")
 async def list_trips(current_user: Dict[str, Any] = Depends(require_customer)):
     """List all trips for the current customer."""
     user_id = current_user["user_id"]
-    rows = await _fetch_rows("""
+    trips = await _fetch_rows("""
         SELECT TRIP_ID, TRIP_NAME, START_DATE, END_DATE, STATUS, CREATED_AT
         FROM TRIP
         WHERE USER_ID = :user_id
         ORDER BY CREATED_AT DESC
     """, {"user_id": user_id})
-    
-    # Add destinations and bookings for each trip
-    for trip in rows:
-        destinations = await _fetch_rows("""
-            SELECT d.NAME, td.VISIT_ORDER, td.ARRIVAL_DATE, td.DEPARTURE_DATE
-            FROM TRIP_DESTINATION td
-            JOIN DESTINATION d ON td.DESTINATION_ID = d.DESTINATION_ID
-            WHERE td.TRIP_ID = :trip_id
-            ORDER BY td.VISIT_ORDER
-        """, {"trip_id": trip["trip_id"]})
-        
-        bookings = await _fetch_rows("""
-            SELECT b.BOOKING_ID, b.BOOKING_TYPE, b.TOTAL_AMOUNT, b.STATUS
-            FROM BOOKING b
-            WHERE b.TRIP_ID = :trip_id
-            ORDER BY b.BOOKING_DATE
-        """, {"trip_id": trip["trip_id"]})
-        
-        trip["destinations"] = destinations
-        trip["bookings"] = bookings
-    
-    return rows
+    if not trips:
+        return []
+
+    dest_rows = await _fetch_rows("""
+        SELECT td.TRIP_ID, d.NAME, td.VISIT_ORDER, td.ARRIVAL_DATE, td.DEPARTURE_DATE
+        FROM TRIP_DESTINATION td
+        JOIN DESTINATION d ON td.DESTINATION_ID = d.DESTINATION_ID
+        JOIN TRIP t ON t.TRIP_ID = td.TRIP_ID
+        WHERE t.USER_ID = :user_id
+        ORDER BY td.TRIP_ID, td.VISIT_ORDER
+    """, {"user_id": user_id})
+
+    booking_rows = await _fetch_rows("""
+        SELECT b.TRIP_ID, b.BOOKING_ID, b.BOOKING_TYPE, b.TOTAL_AMOUNT, b.STATUS
+        FROM BOOKING b
+        WHERE b.USER_ID = :user_id AND b.TRIP_ID IS NOT NULL
+        ORDER BY b.BOOKING_DATE
+    """, {"user_id": user_id})
+
+    dests_by_trip, bookings_by_trip = {}, {}
+    for d in dest_rows:
+        dests_by_trip.setdefault(d["trip_id"], []).append(d)
+    for b in booking_rows:
+        bookings_by_trip.setdefault(b["trip_id"], []).append(b)
+
+    for trip in trips:
+        trip["destinations"] = dests_by_trip.get(trip["trip_id"], [])
+        trip["bookings"] = bookings_by_trip.get(trip["trip_id"], [])
+    return trips
 
 
 @router.get("/trips/{trip_id}")
@@ -586,8 +592,8 @@ async def cancel_booking(booking_id: int, current_user: Dict[str, Any] = Depends
             )
             conn.commit()
     
-    await log_delete(user_id, "BOOKING", booking_id, f"Cancelled by customer")
-    return {"message": "Booking cancelled successfully."}
+    await log_audit(user_id, "CANCEL", "BOOKING", booking_id, None, "Cancelled by customer (refund issued for successful payments)")
+    return {"message": "Booking cancelled. Any successful payments have been refunded."}
 
 
 # ============================================================
@@ -598,15 +604,24 @@ async def cancel_booking(booking_id: int, current_user: Dict[str, Any] = Depends
 async def make_payment(payload: PaymentCreateRequest, current_user: Dict[str, Any] = Depends(require_customer)):
     """Make a payment for a booking."""
     user_id = current_user["user_id"]
-    
-    # Verify booking ownership
-    booking = await _fetch_one(
-        "SELECT BOOKING_ID, TOTAL_AMOUNT FROM BOOKING WHERE BOOKING_ID = :booking_id AND USER_ID = :user_id",
-        {"booking_id": payload.booking_id, "user_id": user_id}
-    )
+
+    booking = await _fetch_one("""
+        SELECT b.BOOKING_ID, b.TOTAL_AMOUNT, b.STATUS,
+               NVL((SELECT SUM(p.AMOUNT) FROM PAYMENT p
+                    WHERE p.BOOKING_ID = b.BOOKING_ID AND p.STATUS = 'SUCCESS'), 0) AS PAID
+        FROM BOOKING b
+        WHERE b.BOOKING_ID = :booking_id AND b.USER_ID = :user_id
+    """, {"booking_id": payload.booking_id, "user_id": user_id})
     if not booking:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking not found.")
-    
+    if booking["status"] == "CANCELLED":
+        raise HTTPException(status_code=400, detail="Cannot pay for a cancelled booking.")
+    balance = float(booking["total_amount"]) - float(booking["paid"])
+    if payload.amount <= 0:
+        raise HTTPException(status_code=400, detail="Amount must be greater than zero.")
+    if payload.amount > balance + 0.005:
+        raise HTTPException(status_code=400, detail=f"Amount exceeds the balance due ({balance:.2f}).")
+
     with get_connection() as conn:
         with conn.cursor() as cur:
             payment_id = cur.var(int)
@@ -626,16 +641,20 @@ async def make_payment(payload: PaymentCreateRequest, current_user: Dict[str, An
             )
             created_payment_id = payment_id.getvalue()
             conn.commit()
-    
-    await log_create(user_id, "PAYMENT", created_payment_id, f"Booking: {payload.booking_id}, Amount: {payload.amount}")
-    
+
+    if payload.amount >= balance - 0.005:   # fully paid -> confirm the booking
+        await _execute("UPDATE BOOKING SET STATUS = 'CONFIRMED' WHERE BOOKING_ID = :b AND STATUS = 'PENDING'",
+                       {"b": payload.booking_id})
+    await log_audit(user_id, "PAY", "PAYMENT", created_payment_id, None,
+                    f"Booking: {payload.booking_id}, Amount: {payload.amount}")
+
     payment = await _fetch_one("""
         SELECT PAYMENT_ID, BOOKING_ID, TRANSACTION_REFERENCE, AMOUNT, PAYMENT_METHOD,
                PAYMENT_DATE, STATUS, REFUND_AMOUNT
         FROM PAYMENT
         WHERE PAYMENT_ID = :payment_id
     """, {"payment_id": created_payment_id})
-    
+
     return PaymentResponse(**payment)
 
 
@@ -691,7 +710,7 @@ async def submit_review(payload: ReviewCreateRequest, current_user: Dict[str, An
     
     # Get the created review
     review = await _fetch_one("""
-        SELECT REVIEW_ID, TRIP_ID, RATING, USER_COMMENT AS comment, REVIEW_DATE
+        SELECT REVIEW_ID, TRIP_ID, RATING, USER_COMMENT AS "COMMENT", REVIEW_DATE
         FROM REVIEW
         WHERE TRIP_ID = :trip_id
     """, {"trip_id": payload.trip_id})
@@ -705,12 +724,14 @@ async def list_reviews(current_user: Dict[str, Any] = Depends(require_customer))
     """List all reviews by the current customer."""
     user_id = current_user["user_id"]
     rows = await _fetch_rows("""
-        SELECT r.REVIEW_ID, r.TRIP_ID, r.RATING, r.USER_COMMENT, r.REVIEW_DATE,
-               t.TRIP_NAME
-        FROM REVIEW r
-        JOIN TRIP t ON r.TRIP_ID = t.TRIP_ID
-        WHERE t.USER_ID = :user_id
-        ORDER BY r.REVIEW_DATE DESC
+        SELECT b.BOOKING_ID, b.BOOKING_TYPE, b.BOOKING_DATE, b.TOTAL_AMOUNT, b.STATUS, b.TRIP_ID,
+               t.TRIP_NAME,
+               NVL((SELECT SUM(p.AMOUNT) FROM PAYMENT p
+                    WHERE p.BOOKING_ID = b.BOOKING_ID AND p.STATUS = 'SUCCESS'), 0) AS PAID_AMOUNT
+        FROM BOOKING b
+        LEFT JOIN TRIP t ON b.TRIP_ID = t.TRIP_ID
+        WHERE b.USER_ID = :user_id
+        ORDER BY b.BOOKING_DATE DESC
     """, {"user_id": user_id})
     return rows
 
@@ -729,7 +750,7 @@ async def get_trip_review(trip_id: int, current_user: Dict[str, Any] = Depends(r
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Trip not found.")
     
     review = await _fetch_one("""
-        SELECT REVIEW_ID, TRIP_ID, RATING, USER_COMMENT AS comment, REVIEW_DATE
+        SELECT REVIEW_ID, TRIP_ID, RATING, USER_COMMENT AS "COMMENT", REVIEW_DATE
         FROM REVIEW
         WHERE TRIP_ID = :trip_id
     """, {"trip_id": trip_id})

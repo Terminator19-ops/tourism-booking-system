@@ -1,5 +1,5 @@
 // Uses shared api.js for auth, API calls, and error handling
-
+let sharedTripId = null;
 let allTours = [];
 
 const listView = document.getElementById('listView');
@@ -124,7 +124,7 @@ async function bookPackage() {
         const tripData = await apiFetch('/customer/trips', {
             method: 'POST',
             body: JSON.stringify({
-                trip_name: `Package Booking ${new Date().toLocaleDateString()}`,
+                trip_name: tour.name.slice(0, 100),
                 start_date: date,
                 end_date: date
             })

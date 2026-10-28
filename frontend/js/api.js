@@ -92,8 +92,8 @@ function showMessage(elementId, message, type = 'success') {
     element.className = type === 'error' ? 'msg-error' : 'msg-success';
 }
 
-function showLoading(elementId, isLoading) {
-    const element = document.getElementById(elementId);
+function showLoading(target, isLoading) {
+    const element = typeof target === 'string' ? document.getElementById(target) : target;
     if (!element) return;
     if (isLoading) {
         element.classList.add('loading');
@@ -170,17 +170,17 @@ function renderNavigation() {
             <a href="tours.html">Tours</a>
             <a href="travel.html">Travel</a>
             <a href="activities.html">Activities</a>
+            <a href="bookings.html">My Bookings</a>
+            <a href="payments.html">Payments</a>
             <a href="profile.html">Profile</a>
-            <a href="admin.html" id="adminNavLink" class="hidden">Admin</a>
             <button id="logoutBtn">Logout</button>
         `;
     } else if (role === 'OWNER') {
         navHtml = `
             <a href="owner.html">My Hotels</a>
-            <a href="owner.html#bookings">My Bookings</a>
-            <a href="owner.html#trips">My Trips</a>
+            <a href="owner.html#bookingsSection">My Bookings</a>
+            <a href="owner.html#tripsSection">My Trips</a>
             <a href="profile.html">Profile</a>
-            <a href="admin.html" id="adminNavLink" class="hidden">Admin</a>
             <button id="logoutBtn">Logout</button>
         `;
     } else if (role === 'ADMIN') {
@@ -242,4 +242,8 @@ async function logout() {
     }
     clearAuthState();
     window.location.href = 'login.html';
+}
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }

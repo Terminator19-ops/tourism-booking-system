@@ -18,16 +18,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadDashboardData() {
     try {
-        // Load upcoming trips
-        const trips = await apiFetch('/customer/trips');
+        const [trips, bookings, payments] = await Promise.all([
+            apiFetch('/customer/trips'),
+            apiFetch('/customer/bookings'),
+            apiFetch('/customer/payments')
+        ]);
         renderUpcomingTrips(trips);
-
-        // Load recent bookings
-        const bookings = await apiFetch('/customer/bookings');
         renderRecentBookings(bookings);
-
-        // Load recent payments
-        const payments = await apiFetch('/customer/payments');
         renderRecentPayments(payments);
     } catch (error) {
         console.error('Failed to load dashboard data:', error);
