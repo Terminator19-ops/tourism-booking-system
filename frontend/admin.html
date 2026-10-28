@@ -195,7 +195,24 @@
             <h2>Manage Trips</h2>
             <div id="tripList"></div>
         </div>
+        <!-- Analytics -->
+        <div class="section-sep">
+            <h2>Reports &amp; Analytics</h2>
+            <div id="analyticsSummary"><p style="color:#888;">Loading...</p></div>
+        </div>
 
+        <!-- Payments -->
+        <div class="section-sep">
+            <h2>Manage Payments</h2>
+            <select id="paymentStatusFilter" style="width:160px;">
+                <option value="">All statuses</option>
+                <option value="SUCCESS">Success</option>
+                <option value="REFUNDED">Refunded</option>
+                <option value="PENDING">Pending</option>
+                <option value="FAILED">Failed</option>
+            </select>
+            <div id="paymentList"></div>
+        </div>
         <!-- Bookings -->
         <div class="section-sep">
             <h2>Manage Bookings</h2>

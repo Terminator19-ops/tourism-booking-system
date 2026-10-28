@@ -64,19 +64,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadDestinationsForSelect() {
     try {
-        // Get destinations from hotels endpoint which includes destination info
-        const hotels = await apiFetch('/customer/hotels');
-        const destinations = [...new Map(hotels.map(h => [h.destination_id, {id: h.destination_id, name: h.destination_name, city: h.city, country: h.country}])).values()];
-        
+        const destinations = await apiFetch('/owner/destinations');
         const select = document.getElementById('hotelDestinationId');
         select.innerHTML = '<option value="">Select destination</option>';
         destinations.forEach(d => {
-            if (d.name) {
-                const option = document.createElement('option');
-                option.value = d.id;
-                option.textContent = `${d.name}${d.city ? ', ' + d.city : ''}${d.country ? ', ' + d.country : ''}`;
-                select.appendChild(option);
-            }
+            const option = document.createElement('option');
+            option.value = d.destination_id;
+            option.textContent = [d.name, d.city, d.country].filter(Boolean).join(', ');
+            select.appendChild(option);
         });
     } catch (error) {
         console.error('Failed to load destinations:', error);
@@ -158,6 +153,8 @@ function renderRooms(rooms) {
             <p>Capacity: ${r.capacity} | ${formatCurrency(r.price_per_night)}/night | Status: ${r.status}</p>
             <button onclick="editRoom(${r.room_id})">Edit</button>
             <button class="danger" onclick="deactivateRoom(${r.room_id})">Deactivate</button>
+            <button onclick="toggleBlockPanel(${r.room_id})">Block dates</button>
+            <div id="blocks-${r.room_id}" class="hidden section-sep"></div>
         `;
         container.appendChild(d);
     });
@@ -463,10 +460,10 @@ function renderOwnerBookings(bookings) {
         const d = document.createElement('div');
         d.className = 'list-item';
         d.innerHTML = `
-            <strong>Booking #${b.booking_id} (${b.booking_type})</strong>
-            <p>Customer: ${b.customer_name} (${b.customer_email})</p>
-            <p>Hotel: ${b.hotel_name} | Room: ${b.room_number || 'N/A'}</p>
-            <p>${formatDate(b.check_in_date)} → ${formatDate(b.check_out_date)} | ${formatCurrency(b.total_amount)} | Status: ${b.status}</p>
+            <strong>Booking #${b.booking_id} (${escapeHtml(b.booking_type)})</strong>
+            <p>Customer: ${escapeHtml(b.customer_name)} | ${escapeHtml(b.customer_email)} | ${escapeHtml(b.customer_phone || 'no phone')}</p>
+            <p>Hotel: ${escapeHtml(b.hotel_name)} | Room: ${escapeHtml(b.room_number || 'N/A')} | Guests: ${b.number_of_guests ?? 'N/A'}</p>
+            <p>Check-in ${formatDate(b.check_in_date)} → Check-out ${formatDate(b.check_out_date)} | ${formatCurrency(b.total_amount)} | Status: <strong>${escapeHtml(b.status)}</strong></p>
         `;
         container.appendChild(d);
     });
@@ -504,4 +501,65 @@ function renderOwnerTrips(trips) {
         `;
         container.appendChild(d);
     });
+}
+
+async function toggleBlockPanel(roomId) {
+    const panel = document.getElementById(`blocks-${roomId}`);
+    if (!panel.classList.contains('hidden')) { panel.classList.add('hidden'); return; }
+    panel.classList.remove('hidden');
+    await renderBlockPanel(roomId);
+}
+
+async function renderBlockPanel(roomId) {
+    const panel = document.getElementById(`blocks-${roomId}`);
+    panel.innerHTML = '<p style="color:#888;">Loading...</p>';
+    try {
+        const blocks = await apiFetch(`/owner/hotels/${currentHotelId}/rooms/${roomId}/blocks`);
+        const list = blocks.length
+            ? blocks.map(b => `
+                <p style="font-size:0.85rem;">${formatDate(b.start_date)} → ${formatDate(b.end_date)}
+                ${b.reason ? '(' + escapeHtml(b.reason) + ')' : ''}
+                <button onclick="removeBlock(${roomId}, ${b.block_id})">Unblock</button></p>`).join('')
+            : '<p style="font-size:0.85rem;color:#888;">No blocked dates.</p>';
+        panel.innerHTML = `
+            ${list}
+            <label style="font-size:0.85rem;">Block from</label>
+            <input type="date" id="blockStart-${roomId}">
+            <label style="font-size:0.85rem;">Until (exclusive, like check-out)</label>
+            <input type="date" id="blockEnd-${roomId}">
+            <input type="text" id="blockReason-${roomId}" placeholder="Reason (optional)">
+            <button class="primary" onclick="addBlock(${roomId})">Block these dates</button>
+            <div id="blockMsg-${roomId}"></div>`;
+    } catch (error) {
+        panel.innerHTML = `<p style="color:red;">${escapeHtml(handleApiError(error, 'Failed to load blocks.'))}</p>`;
+    }
+}
+
+async function addBlock(roomId) {
+    const start_date = document.getElementById(`blockStart-${roomId}`).value;
+    const end_date = document.getElementById(`blockEnd-${roomId}`).value;
+    const reason = document.getElementById(`blockReason-${roomId}`).value.trim();
+    if (!start_date || !end_date) {
+        showMessage(`blockMsg-${roomId}`, 'Choose both dates.', 'error');
+        return;
+    }
+    try {
+        await apiFetch(`/owner/hotels/${currentHotelId}/rooms/${roomId}/blocks`, {
+            method: 'POST',
+            body: JSON.stringify({ start_date, end_date, reason })
+        });
+        await renderBlockPanel(roomId);
+        showMessage(`blockMsg-${roomId}`, 'Dates blocked.', 'success');
+    } catch (error) {
+        showMessage(`blockMsg-${roomId}`, handleApiError(error, 'Could not block dates.'), 'error');
+    }
+}
+
+async function removeBlock(roomId, blockId) {
+    try {
+        await apiFetch(`/owner/hotels/${currentHotelId}/rooms/${roomId}/blocks/${blockId}`, { method: 'DELETE' });
+        await renderBlockPanel(roomId);
+    } catch (error) {
+        showMessage(`blockMsg-${roomId}`, handleApiError(error, 'Could not unblock.'), 'error');
+    }
 }

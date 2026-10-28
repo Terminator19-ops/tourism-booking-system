@@ -5,7 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 
 from backend.database.connection import get_connection
 from backend.utils.authorization import require_admin, get_current_user
-from backend.utils.audit import log_create, log_update, log_delete, log_deactivate, log_user_management
+from backend.utils.authentication import hash_password, invalidate_user_sessions
+from backend.utils.audit import log_create, log_update, log_delete, log_deactivate, log_user_management, log_audit
 from backend.schemas.authentication import (
     AdminUserCreateRequest, AdminUserUpdateRequest, AdminUserResponse,
     AdminHotelResponse, AdminRoomResponse, AdminActivityResponse,
@@ -59,6 +60,14 @@ async def list_destinations(current_user: Dict[str, Any] = Depends(require_admin
     return rows
 
 
+@router.get("/destinations/{destination_id}")
+async def get_destination(destination_id: int, current_user: Dict[str, Any] = Depends(require_admin)):
+    row = await _fetch_one("SELECT * FROM DESTINATION WHERE DESTINATION_ID = :id", {"id": destination_id})
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Destination not found.")
+    return row
+
+
 @router.post("/destinations")
 async def create_destination(payload: Dict[str, Any], current_user: Dict[str, Any] = Depends(require_admin)):
     name = str(payload.get("name") or "").strip()
@@ -68,7 +77,7 @@ async def create_destination(payload: Dict[str, Any], current_user: Dict[str, An
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="name, city and country are required.")
     with get_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT NVL(MAX(destination_id),0) + 1 FROM DESTINATION")
+            cur.execute("SELECT seq_destination.NEXTVAL FROM DUAL")
             destination_id = cur.fetchone()[0]
             cur.execute(
                 """
@@ -175,7 +184,7 @@ async def create_hotel(payload: Dict[str, Any], current_user: Dict[str, Any] = D
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="name, destination_id and address are required.")
     with get_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT NVL(MAX(hotel_id),0) + 1 FROM HOTEL")
+            cur.execute("SELECT seq_hotel.NEXTVAL FROM DUAL")
             hotel_id = cur.fetchone()[0]
             cur.execute(
                 """
@@ -321,7 +330,7 @@ async def create_tour_package(payload: Dict[str, Any], current_user: Dict[str, A
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="name is required.")
     with get_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT NVL(MAX(package_id),0) + 1 FROM TOUR_PACKAGE")
+            cur.execute("SELECT seq_package.NEXTVAL FROM DUAL")
             package_id = cur.fetchone()[0]
             cur.execute(
                 """
@@ -510,7 +519,7 @@ async def create_activity(payload: Dict[str, Any], current_user: Dict[str, Any] 
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="destination_id and name are required.")
     with get_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT NVL(MAX(activity_id),0) + 1 FROM ACTIVITY")
+            cur.execute("SELECT seq_activity.NEXTVAL FROM DUAL")
             activity_id = cur.fetchone()[0]
             cur.execute(
                 """
@@ -649,8 +658,9 @@ async def create_travel_segment(payload: Dict[str, Any], current_user: Dict[str,
     
     with get_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT NVL(MAX(travel_segment_id),0) + 1 FROM TRAVEL_SEGMENT")
+            cur.execute("SELECT seq_travel_segment.NEXTVAL FROM DUAL")
             segment_id = cur.fetchone()[0]
+            # NOTE: column list not yet checked against the real TRAVEL_SEGMENT table
             cur.execute(
                 """
                 INSERT INTO TRAVEL_SEGMENT (
@@ -781,8 +791,9 @@ async def create_room(payload: Dict[str, Any], current_user: Dict[str, Any] = De
     
     with get_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT NVL(MAX(room_id),0) + 1 FROM ROOM")
+            cur.execute("SELECT seq_room.NEXTVAL FROM DUAL")
             room_id = cur.fetchone()[0]
+            # NOTE: column list not yet checked against the real ROOM table
             cur.execute(
                 """
                 INSERT INTO ROOM (
@@ -897,21 +908,27 @@ async def get_user(user_id: int, current_user: Dict[str, Any] = Depends(require_
 
 @router.post("/users")
 async def create_user(payload: AdminUserCreateRequest, current_user: Dict[str, Any] = Depends(require_admin)):
+    # Normalise email so duplicates differing only in case or spaces are caught
+    email = payload.email.strip().lower()
+
     # Check if email already exists
     existing = await _fetch_one(
-        "SELECT user_id FROM APP_USER WHERE EMAIL = :email",
-        {"email": payload.email}
+        "SELECT user_id FROM APP_USER WHERE LOWER(EMAIL) = :email",
+        {"email": email}
     )
     if existing:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already exists.")
     
-    # Hash password
-    from backend.utils.authorization import hash_password
-    password_hash, salt = hash_password(payload.password)
+    role = (payload.role or "").upper()
+    if role == "ADMIN":
+        raise HTTPException(status_code=400, detail="Admin accounts cannot be created here. The admin account is built in.")
+    if role not in ("CUSTOMER", "OWNER"):
+        raise HTTPException(status_code=400, detail="Role must be CUSTOMER or OWNER.")
+    password_hash = hash_password(payload.password)
     
     with get_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT NVL(MAX(user_id),0) + 1 FROM APP_USER")
+            cur.execute("SELECT user_seq.NEXTVAL FROM DUAL")
             user_id = cur.fetchone()[0]
             cur.execute(
                 """
@@ -925,15 +942,15 @@ async def create_user(payload: AdminUserCreateRequest, current_user: Dict[str, A
                     "user_id": user_id,
                     "first_name": payload.first_name,
                     "last_name": payload.last_name,
-                    "email": payload.email,
+                    "email": email,
                     "phone": payload.phone,
                     "password_hash": password_hash,
-                    "role": payload.role,
+                    "role": role,
                     "status": (payload.status or "ACTIVE").upper(),
                 },
             )
             conn.commit()
-    await log_user_management(current_user["user_id"], "CREATE", user_id, f"User: {payload.first_name} {payload.last_name} ({payload.role})")
+    await log_user_management(current_user["user_id"], "CREATE", user_id, f"User: {payload.first_name} {payload.last_name} ({role})")
     return {"message": "User created successfully.", "user_id": user_id}
 
 
@@ -944,26 +961,37 @@ async def update_user(user_id: int, payload: AdminUserUpdateRequest, current_use
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
     
     # Prevent admin from demoting themselves
-    if user_id == current_user["user_id"] and payload.role and payload.role != "ADMIN":
+    if user_id == current_user["user_id"] and payload.role and payload.role.upper() != "ADMIN":
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot change your own admin role.")
     
-    # Check if email already exists (excluding current user)
-    if payload.email:
+    data = payload.model_dump(exclude_none=True)
+
+    # Normalise email, then check it is not used by another user
+    if "email" in data:
+        data["email"] = data["email"].strip().lower()
         existing = await _fetch_one(
-            "SELECT user_id FROM APP_USER WHERE EMAIL = :email AND USER_ID != :user_id",
-            {"email": payload.email, "user_id": user_id}
+            "SELECT user_id FROM APP_USER WHERE LOWER(EMAIL) = :email AND USER_ID != :user_id",
+            {"email": data["email"], "user_id": user_id}
         )
         if existing:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already exists.")
-    
+
+    if "role" in data:
+        data["role"] = data["role"].upper()
+        if data["role"] == "ADMIN" and old_user["role"] != "ADMIN":
+            raise HTTPException(status_code=400, detail="Cannot promote a user to ADMIN.")
+    if "status" in data:
+        data["status"] = data["status"].upper()
+        if user_id == current_user["user_id"] and data["status"] != "ACTIVE":
+            raise HTTPException(status_code=400, detail="You cannot deactivate your own account.")
+
     allowed_fields = ["FIRST_NAME", "LAST_NAME", "EMAIL", "PHONE", "ROLE", "STATUS"]
     updates = []
     params = {"user_id": user_id}
-    
     for field in allowed_fields:
-        if field.lower() in payload and payload[field.lower()] is not None:
+        if field.lower() in data:
             updates.append(f"{field} = :{field.lower()}")
-            params[field.lower()] = payload[field.lower()]
+            params[field.lower()] = data[field.lower()]
     
     if not updates:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No valid fields to update.")
@@ -974,6 +1002,11 @@ async def update_user(user_id: int, payload: AdminUserUpdateRequest, current_use
         with conn.cursor() as cur:
             cur.execute(query, params)
             conn.commit()
+
+    # End any live sessions if the user was deactivated or their role changed
+    if ("status" in data and data["status"] != "ACTIVE") or \
+       ("role" in data and data["role"] != old_user["role"]):
+        invalidate_user_sessions(user_id)
     
     await log_user_management(current_user["user_id"], "UPDATE", user_id, f"User: {old_user.get('first_name')} {old_user.get('last_name')}")
     return {"message": "User updated successfully."}
@@ -991,12 +1024,14 @@ async def delete_user(user_id: int, current_user: Dict[str, Any] = Depends(requi
     
     # Check for dependencies
     deps = await _fetch_one("""
-        SELECT 
-            (SELECT COUNT(*) FROM BOOKING WHERE USER_ID = :user_id AND STATUS IN ('PENDING', 'CONFIRMED')) AS active_bookings,
+        SELECT
+            (SELECT COUNT(*) FROM BOOKING WHERE USER_ID = :user_id) AS bookings,
             (SELECT COUNT(*) FROM TRIP WHERE USER_ID = :user_id) AS trips,
-            (SELECT COUNT(*) FROM REVIEW WHERE USER_ID = :user_id) AS reviews,
-            (SELECT COUNT(*) FROM PAYMENT WHERE USER_ID = :user_id) AS payments,
-            (SELECT COUNT(*) FROM HOTEL WHERE OWNER_ID = :user_id) AS owned_hotels
+            (SELECT COUNT(*) FROM REVIEW r JOIN TRIP t ON r.TRIP_ID = t.TRIP_ID WHERE t.USER_ID = :user_id) AS reviews,
+            (SELECT COUNT(*) FROM PAYMENT p JOIN BOOKING b ON p.BOOKING_ID = b.BOOKING_ID WHERE b.USER_ID = :user_id) AS payments,
+            (SELECT COUNT(*) FROM HOTEL WHERE OWNER_ID = :user_id) AS owned_hotels,
+            (SELECT COUNT(*) FROM AUDIT_LOG WHERE USER_ID = :user_id) AS audit_rows,
+            (SELECT COUNT(*) FROM REPORT WHERE USER_ID = :user_id) AS reports
         FROM DUAL
     """, {"user_id": user_id})
     
@@ -1006,6 +1041,7 @@ async def delete_user(user_id: int, current_user: Dict[str, Any] = Depends(requi
             with conn.cursor() as cur:
                 cur.execute("UPDATE APP_USER SET STATUS = 'INACTIVE' WHERE USER_ID = :user_id", {"user_id": user_id})
                 conn.commit()
+        invalidate_user_sessions(user_id)
         await log_user_management(current_user["user_id"], "DEACTIVATE", user_id, f"User: {old_user.get('first_name')} {old_user.get('last_name')}")
         return {"message": "User has dependencies, deactivated instead of deleted."}
     
@@ -1013,6 +1049,7 @@ async def delete_user(user_id: int, current_user: Dict[str, Any] = Depends(requi
         with conn.cursor() as cur:
             cur.execute("DELETE FROM APP_USER WHERE USER_ID = :user_id", {"user_id": user_id})
             conn.commit()
+    invalidate_user_sessions(user_id)
     await log_user_management(current_user["user_id"], "DELETE", user_id, f"User: {old_user.get('first_name')} {old_user.get('last_name')}")
     return {"message": "User deleted successfully."}
 
@@ -1232,7 +1269,7 @@ async def create_report(payload: Dict[str, Any], current_user: Dict[str, Any] = 
     
     with get_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT NVL(MAX(report_id),0) + 1 FROM REPORT")
+            cur.execute("SELECT seq_report.NEXTVAL FROM DUAL")
             report_id = cur.fetchone()[0]
             cur.execute(
                 """
@@ -1344,3 +1381,110 @@ async def get_audit_log(log_id: int, current_user: Dict[str, Any] = Depends(requ
     if not log:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Audit log not found.")
     return log
+
+
+# ============================================================
+# PAYMENTS, REFUNDS, BOOKING CANCEL, ANALYTICS
+# ============================================================
+
+@router.get("/payments")
+async def list_payments(status_filter: Optional[str] = Query(None, alias="status"),
+                        current_user: Dict[str, Any] = Depends(require_admin)):
+    params = {}
+    where = ""
+    if status_filter:
+        where = "WHERE p.STATUS = :status"
+        params["status"] = status_filter.upper()
+    return await _fetch_rows(f"""
+        SELECT p.PAYMENT_ID, p.BOOKING_ID, p.TRANSACTION_REFERENCE, p.AMOUNT, p.PAYMENT_METHOD,
+               p.PAYMENT_DATE, p.STATUS, p.REFUND_AMOUNT, b.BOOKING_TYPE,
+               u.FIRST_NAME || ' ' || u.LAST_NAME AS CUSTOMER_NAME, u.EMAIL AS CUSTOMER_EMAIL
+        FROM PAYMENT p
+        JOIN BOOKING b ON p.BOOKING_ID = b.BOOKING_ID
+        JOIN APP_USER u ON b.USER_ID = u.USER_ID
+        {where}
+        ORDER BY p.PAYMENT_DATE DESC
+    """, params)
+
+
+@router.post("/payments/{payment_id}/refund")
+async def refund_payment(payment_id: int, current_user: Dict[str, Any] = Depends(require_admin)):
+    pay = await _fetch_one(
+        "SELECT PAYMENT_ID, BOOKING_ID, AMOUNT, REFUND_AMOUNT, STATUS FROM PAYMENT WHERE PAYMENT_ID = :id",
+        {"id": payment_id})
+    if not pay:
+        raise HTTPException(status_code=404, detail="Payment not found.")
+    if pay["status"] != "SUCCESS":
+        raise HTTPException(status_code=400, detail="Only successful, not-yet-refunded payments can be refunded.")
+
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE PAYMENT SET REFUND_AMOUNT = AMOUNT, STATUS = 'REFUNDED'
+                WHERE PAYMENT_ID = :id AND STATUS = 'SUCCESS'
+            """, {"id": payment_id})
+            if cur.rowcount == 0:
+                raise HTTPException(status_code=409, detail="Payment was already refunded.")
+            conn.commit()
+
+    await log_audit(current_user["user_id"], "UPDATE", "PAYMENT", payment_id,
+                    str(pay), f"REFUNDED {pay['amount']} (by admin)")
+    return {"message": f"Refunded {pay['amount']} for payment #{payment_id}."}
+
+
+@router.post("/bookings/{booking_id}/cancel")
+async def admin_cancel_booking(booking_id: int, current_user: Dict[str, Any] = Depends(require_admin)):
+    b = await _fetch_one("SELECT USER_ID, STATUS FROM BOOKING WHERE BOOKING_ID = :id", {"id": booking_id})
+    if not b:
+        raise HTTPException(status_code=404, detail="Booking not found.")
+    if b["status"] == "CANCELLED":
+        raise HTTPException(status_code=400, detail="Booking is already cancelled.")
+
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            # sp_cancel_booking cancels the booking and refunds successful payments
+            cur.execute("BEGIN sp_cancel_booking(:booking_id, :user_id); END;",
+                        {"booking_id": booking_id, "user_id": b["user_id"]})
+            conn.commit()
+
+    await log_audit(current_user["user_id"], "CANCEL", "BOOKING", booking_id, None,
+                    "Cancelled by admin (successful payments refunded)")
+    return {"message": "Booking cancelled and payments refunded."}
+
+
+@router.get("/analytics/summary")
+async def analytics_summary(current_user: Dict[str, Any] = Depends(require_admin)):
+    totals = await _fetch_one("""
+        SELECT
+            (SELECT NVL(SUM(AMOUNT), 0) FROM PAYMENT WHERE STATUS IN ('SUCCESS','REFUNDED')) AS GROSS_REVENUE,
+            (SELECT NVL(SUM(REFUND_AMOUNT), 0) FROM PAYMENT) AS TOTAL_REFUNDS,
+            (SELECT COUNT(*) FROM BOOKING) AS TOTAL_BOOKINGS,
+            (SELECT COUNT(*) FROM APP_USER WHERE ROLE = 'CUSTOMER') AS TOTAL_CUSTOMERS,
+            (SELECT COUNT(*) FROM APP_USER WHERE ROLE = 'OWNER') AS TOTAL_OWNERS
+        FROM DUAL
+    """)
+    by_status = await _fetch_rows("SELECT STATUS, COUNT(*) AS TOTAL FROM BOOKING GROUP BY STATUS ORDER BY STATUS")
+    by_type = await _fetch_rows("""
+        SELECT BOOKING_TYPE, COUNT(*) AS TOTAL, NVL(SUM(TOTAL_AMOUNT), 0) AS BOOKED_VALUE
+        FROM BOOKING WHERE STATUS <> 'CANCELLED'
+        GROUP BY BOOKING_TYPE ORDER BY BOOKING_TYPE
+    """)
+    monthly = await _fetch_rows("""
+        SELECT TO_CHAR(PAYMENT_DATE, 'YYYY-MM') AS REVENUE_MONTH, SUM(AMOUNT - REFUND_AMOUNT) AS REVENUE
+        FROM PAYMENT WHERE STATUS IN ('SUCCESS','REFUNDED')
+        GROUP BY TO_CHAR(PAYMENT_DATE, 'YYYY-MM') ORDER BY 1
+    """)
+    top_customers = await _fetch_rows("""
+        SELECT u.USER_ID, u.FIRST_NAME || ' ' || u.LAST_NAME AS CUSTOMER_NAME, u.EMAIL,
+               COUNT(DISTINCT b.BOOKING_ID) AS BOOKINGS,
+               NVL(SUM(p.AMOUNT - p.REFUND_AMOUNT), 0) AS TOTAL_SPENT
+        FROM APP_USER u
+        JOIN BOOKING b ON b.USER_ID = u.USER_ID
+        LEFT JOIN PAYMENT p ON p.BOOKING_ID = b.BOOKING_ID AND p.STATUS IN ('SUCCESS','REFUNDED')
+        WHERE u.ROLE = 'CUSTOMER'
+        GROUP BY u.USER_ID, u.FIRST_NAME, u.LAST_NAME, u.EMAIL
+        ORDER BY TOTAL_SPENT DESC
+        FETCH FIRST 10 ROWS ONLY
+    """)
+    return {"totals": totals, "bookings_by_status": by_status, "bookings_by_type": by_type,
+            "monthly_revenue": monthly, "top_customers": top_customers}

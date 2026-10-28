@@ -1,3 +1,6 @@
+from datetime import date
+from pydantic import BaseModel
+from backend.utils.audit import log_audit
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -429,7 +432,9 @@ async def list_owner_bookings(current_user: Dict[str, Any] = Depends(require_own
     rows = await _fetch_rows(f"""
         SELECT b.BOOKING_ID, b.BOOKING_TYPE, b.BOOKING_DATE, b.TOTAL_AMOUNT, b.STATUS,
                u.FIRST_NAME || ' ' || u.LAST_NAME AS CUSTOMER_NAME,
-               u.EMAIL AS CUSTOMER_EMAIL,
+             u.EMAIL AS CUSTOMER_EMAIL,
+               u.PHONE AS CUSTOMER_PHONE,
+               hb.NUMBER_OF_GUESTS,
                h.NAME AS HOTEL_NAME,
                r.ROOM_NUMBER,
                hb.CHECK_IN_DATE, hb.CHECK_OUT_DATE
@@ -461,6 +466,8 @@ async def get_owner_booking(booking_id: int, current_user: Dict[str, Any] = Depe
         SELECT b.BOOKING_ID, b.BOOKING_TYPE, b.BOOKING_DATE, b.TOTAL_AMOUNT, b.STATUS,
                u.FIRST_NAME || ' ' || u.LAST_NAME AS CUSTOMER_NAME,
                u.EMAIL AS CUSTOMER_EMAIL,
+               u.PHONE AS CUSTOMER_PHONE,
+               hb.NUMBER_OF_GUESTS,
                h.NAME AS HOTEL_NAME,
                r.ROOM_NUMBER,
                hb.CHECK_IN_DATE, hb.CHECK_OUT_DATE
@@ -570,3 +577,102 @@ async def get_owner_trip(trip_id: int, current_user: Dict[str, Any] = Depends(re
     
     trip["bookings"] = bookings
     return OwnerTripResponse(**trip)
+
+# ============================================================
+# DESTINATIONS (so owners can pick any active destination)
+# ============================================================
+
+@router.get("/destinations")
+async def owner_destinations(current_user: Dict[str, Any] = Depends(require_owner)):
+    return await _fetch_rows("""
+        SELECT DESTINATION_ID, NAME, CITY, STATE, COUNTRY
+        FROM DESTINATION WHERE STATUS = 'ACTIVE' ORDER BY NAME
+    """)
+
+
+# ============================================================
+# ROOM BLOCKING (block / unblock by date range)
+# ============================================================
+
+class RoomBlockRequest(BaseModel):
+    start_date: str            # YYYY-MM-DD (first blocked night)
+    end_date: str              # YYYY-MM-DD (exclusive, like check-out)
+    reason: Optional[str] = None
+
+
+async def _check_room_access(hotel_id: int, room_id: int, owner_id: int) -> None:
+    if not await verify_hotel_ownership(hotel_id, owner_id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This hotel is not yours.")
+    row = await _fetch_one(
+        "SELECT COUNT(*) AS cnt FROM ROOM WHERE ROOM_ID = :room_id AND HOTEL_ID = :hotel_id",
+        {"room_id": room_id, "hotel_id": hotel_id},
+    )
+    if not row or row["cnt"] == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Room not found in this hotel.")
+
+
+@router.get("/hotels/{hotel_id}/rooms/{room_id}/blocks")
+async def list_room_blocks(hotel_id: int, room_id: int, current_user: Dict[str, Any] = Depends(require_owner)):
+    await _check_room_access(hotel_id, room_id, current_user["user_id"])
+    return await _fetch_rows("""
+        SELECT BLOCK_ID, ROOM_ID, START_DATE, END_DATE, REASON, CREATED_AT
+        FROM ROOM_BLOCK
+        WHERE ROOM_ID = :room_id AND END_DATE >= TRUNC(SYSDATE)
+        ORDER BY START_DATE
+    """, {"room_id": room_id})
+
+
+@router.post("/hotels/{hotel_id}/rooms/{room_id}/blocks")
+async def block_room(hotel_id: int, room_id: int, payload: RoomBlockRequest,
+                     current_user: Dict[str, Any] = Depends(require_owner)):
+    owner_id = current_user["user_id"]
+    await _check_room_access(hotel_id, room_id, owner_id)
+
+    try:
+        start = date.fromisoformat(payload.start_date)
+        end = date.fromisoformat(payload.end_date)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Dates must be in YYYY-MM-DD format.")
+    if end <= start:
+        raise HTTPException(status_code=400, detail="End date must be after start date.")
+    if start < date.today():
+        raise HTTPException(status_code=400, detail="You cannot block dates in the past.")
+
+    conflict = await _fetch_one("""
+        SELECT COUNT(*) AS cnt
+        FROM HOTEL_BOOKING hb JOIN BOOKING b ON b.BOOKING_ID = hb.BOOKING_ID
+        WHERE hb.ROOM_ID = :room_id AND b.STATUS <> 'CANCELLED'
+          AND :start_date < hb.CHECK_OUT_DATE AND :end_date > hb.CHECK_IN_DATE
+    """, {"room_id": room_id, "start_date": start, "end_date": end})
+    if conflict and conflict["cnt"] > 0:
+        raise HTTPException(status_code=409, detail="Room has bookings in this period, so it cannot be blocked.")
+
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT SEQ_ROOM_BLOCK.NEXTVAL FROM DUAL")
+            block_id = cur.fetchone()[0]
+            cur.execute("""
+                INSERT INTO ROOM_BLOCK (BLOCK_ID, ROOM_ID, START_DATE, END_DATE, REASON, CREATED_BY)
+                VALUES (:block_id, :room_id, :start_date, :end_date, :reason, :owner_id)
+            """, {"block_id": block_id, "room_id": room_id, "start_date": start, "end_date": end,
+                  "reason": (payload.reason or "")[:200], "owner_id": owner_id})
+            conn.commit()
+
+    await log_audit(owner_id, "INSERT", "ROOM_BLOCK", block_id, None, f"Room {room_id}: {start} to {end}")
+    return {"message": "Room blocked for the selected dates.", "block_id": block_id}
+
+
+@router.delete("/hotels/{hotel_id}/rooms/{room_id}/blocks/{block_id}")
+async def unblock_room(hotel_id: int, room_id: int, block_id: int,
+                       current_user: Dict[str, Any] = Depends(require_owner)):
+    owner_id = current_user["user_id"]
+    await _check_room_access(hotel_id, room_id, owner_id)
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM ROOM_BLOCK WHERE BLOCK_ID = :block_id AND ROOM_ID = :room_id",
+                        {"block_id": block_id, "room_id": room_id})
+            if cur.rowcount == 0:
+                raise HTTPException(status_code=404, detail="Block not found.")
+            conn.commit()
+    await log_audit(owner_id, "DELETE", "ROOM_BLOCK", block_id, f"Room {room_id}", None)
+    return {"message": "Dates unblocked."}

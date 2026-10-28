@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 
 from backend.database.connection import get_connection
 from backend.schemas.authentication import (
@@ -17,6 +18,13 @@ from backend.utils.audit import log_create, log_audit
 from backend.utils.authorization import get_current_user, require_customer
 
 router = APIRouter(prefix="/api/customer")
+
+
+class TripDestinationRequest(BaseModel):
+    destination_id: int
+    visit_order: int
+    arrival_date: str    # YYYY-MM-DD
+    departure_date: str  # YYYY-MM-DD
 
 
 def _convert_lob(value: Any) -> Any:
@@ -317,10 +325,7 @@ async def get_trip_details(trip_id: int, current_user: Dict[str, Any] = Depends(
 @router.post("/trips/{trip_id}/destinations")
 async def add_trip_destination(
     trip_id: int,
-    destination_id: int,
-    visit_order: int,
-    arrival_date: str,
-    departure_date: str,
+    payload: TripDestinationRequest,
     current_user: Dict[str, Any] = Depends(require_customer)
 ):
     """Add a destination to a trip."""
@@ -346,15 +351,15 @@ async def add_trip_destination(
                 """,
                 {
                     "trip_id": trip_id,
-                    "destination_id": destination_id,
-                    "visit_order": visit_order,
-                    "arrival_date": arrival_date,
-                    "departure_date": departure_date,
+                    "destination_id": payload.destination_id,
+                    "visit_order": payload.visit_order,
+                    "arrival_date": payload.arrival_date,
+                    "departure_date": payload.departure_date,
                 },
             )
             conn.commit()
     
-    await log_create(user_id, "TRIP_DESTINATION", trip_id, f"Destination: {destination_id}")
+    await log_create(user_id, "TRIP_DESTINATION", trip_id, f"Destination: {payload.destination_id}")
     return {"message": "Destination added to trip successfully."}
 
 

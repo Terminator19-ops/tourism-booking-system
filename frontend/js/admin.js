@@ -62,7 +62,9 @@ async function loadAllAdminData() {
             loadTrips(),
             loadBookings(),
             loadReports(),
-            loadAuditLogs()
+            loadAuditLogs(),
+            loadAnalytics(),
+            loadPayments(),
         ]);
     } catch (error) {
         console.error('Failed to load admin data:', error);
@@ -74,6 +76,7 @@ function setupFormHandlers() {
     document.getElementById('userForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         await createUser();
+    document.getElementById('paymentStatusFilter').addEventListener('change', loadPayments);
     });
 
     // Destinations
@@ -1081,7 +1084,9 @@ function renderBookings(bookings) {
             <strong>Booking #${b.booking_id} (${b.booking_type})</strong>
             <p>Customer: ${b.first_name} ${b.last_name} (${b.email}) | ${formatCurrency(b.total_amount)} | Status: ${b.status}</p>
             <button onclick="editBooking(${b.booking_id})">Edit</button>
-            <button class="danger" onclick="deleteBooking(${b.booking_id})">${b.status !== 'CANCELLED' ? 'Cancel' : 'Delete'}</button>
+            ${b.status !== 'CANCELLED'
+                ? `<button class="danger" onclick="adminCancelBooking(${b.booking_id})">Cancel &amp; Refund</button>`
+                : `<button class="danger" onclick="deleteBooking(${b.booking_id})">Delete</button>`}
         `;
         container.appendChild(div);
     });
@@ -1243,4 +1248,85 @@ function renderAuditLogs(logs) {
         `;
         container.appendChild(div);
     });
+}
+
+// ============================================================
+// ANALYTICS
+// ============================================================
+function miniTable(headers, rows) {
+    if (!rows.length) return '<p style="color:#888;">No data.</p>';
+    return `<table style="border-collapse:collapse;font-size:0.85rem;margin-bottom:12px;">
+        <tr>${headers.map(h => `<th style="border:1px solid #ccc;padding:4px 8px;text-align:left;">${escapeHtml(h)}</th>`).join('')}</tr>
+        ${rows.map(r => `<tr>${r.map(c => `<td style="border:1px solid #ccc;padding:4px 8px;">${c}</td>`).join('')}</tr>`).join('')}
+    </table>`;
+}
+
+async function loadAnalytics() {
+    const c = document.getElementById('analyticsSummary');
+    try {
+        const a = await apiFetch('/admin/analytics/summary');
+        const t = a.totals;
+        const net = Number(t.gross_revenue) - Number(t.total_refunds);
+        c.innerHTML = `
+            <div class="list-item">
+                <p><strong>Net revenue:</strong> ${formatCurrency(net)}
+                   (collected ${formatCurrency(t.gross_revenue)}, refunded ${formatCurrency(t.total_refunds)})</p>
+                <p><strong>Bookings:</strong> ${t.total_bookings} |
+                   <strong>Customers:</strong> ${t.total_customers} | <strong>Owners:</strong> ${t.total_owners}</p>
+            </div>
+            <h3>Bookings by status</h3>
+            ${miniTable(['Status', 'Count'], a.bookings_by_status.map(r => [escapeHtml(r.status), r.total]))}
+            <h3>Bookings by type (excluding cancelled)</h3>
+            ${miniTable(['Type', 'Count', 'Booked value'], a.bookings_by_type.map(r => [escapeHtml(r.booking_type), r.total, formatCurrency(r.booked_value)]))}
+            <h3>Monthly revenue</h3>
+            ${miniTable(['Month', 'Revenue'], a.monthly_revenue.map(r => [escapeHtml(r.revenue_month), formatCurrency(r.revenue)]))}
+            <h3>Top customers by spending</h3>
+            ${miniTable(['Customer', 'Email', 'Bookings', 'Total spent'],
+                a.top_customers.map(r => [escapeHtml(r.customer_name), escapeHtml(r.email), r.bookings, formatCurrency(r.total_spent)]))}`;
+    } catch (error) {
+        c.innerHTML = `<p style="color:red;">${escapeHtml(handleApiError(error, 'Failed to load analytics.'))}</p>`;
+    }
+}
+
+// ============================================================
+// PAYMENTS & REFUNDS
+// ============================================================
+async function loadPayments() {
+    const c = document.getElementById('paymentList');
+    c.innerHTML = '<p style="color:#888;">Loading payments...</p>';
+    try {
+        const status = document.getElementById('paymentStatusFilter').value;
+        const payments = await apiFetch('/admin/payments' + (status ? `?status=${status}` : ''));
+        c.innerHTML = payments.length ? payments.map(p => `
+            <div class="list-item">
+                <strong>${escapeHtml(p.transaction_reference)}</strong>
+                <p>Booking #${p.booking_id} (${escapeHtml(p.booking_type)}) | ${escapeHtml(p.customer_name)} (${escapeHtml(p.customer_email)})</p>
+                <p>${formatCurrency(p.amount)} | ${escapeHtml(p.payment_method)} | ${formatDateTime(p.payment_date)} |
+                   Status: <strong>${escapeHtml(p.status)}</strong>
+                   ${Number(p.refund_amount) > 0 ? ` | Refunded: ${formatCurrency(p.refund_amount)}` : ''}</p>
+                ${p.status === 'SUCCESS' ? `<button class="danger" onclick="refundPayment(${p.payment_id})">Issue refund</button>` : ''}
+            </div>`).join('') : '<p style="color:#888;">No payments found.</p>';
+    } catch (error) {
+        c.innerHTML = `<p style="color:red;">${escapeHtml(handleApiError(error, 'Failed to load payments.'))}</p>`;
+    }
+}
+
+async function refundPayment(id) {
+    if (!confirm('Refund this payment in full?')) return;
+    try {
+        await apiFetch(`/admin/payments/${id}/refund`, { method: 'POST' });
+        await Promise.all([loadPayments(), loadAnalytics()]);
+    } catch (error) {
+        alert(handleApiError(error, 'Refund failed.'));
+    }
+}
+
+async function adminCancelBooking(id) {
+    if (!confirm('Cancel this booking and refund its successful payments?')) return;
+    try {
+        await apiFetch(`/admin/bookings/${id}/cancel`, { method: 'POST' });
+        await Promise.all([loadBookings(), loadPayments(), loadAnalytics()]);
+    } catch (error) {
+        alert(handleApiError(error, 'Failed to cancel booking.'));
+    }
 }

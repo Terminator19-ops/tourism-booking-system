@@ -220,6 +220,8 @@ class OwnerBookingResponse(BaseModel):
     room_number: Optional[str] = None
     check_in_date: Optional[str] = None
     check_out_date: Optional[str] = None
+    customer_phone: Optional[str] = None
+    number_of_guests: Optional[int] = None
 
 
 class OwnerTripResponse(BaseModel):
