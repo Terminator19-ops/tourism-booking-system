@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 
 from backend.database.connection import get_connection
 from backend.utils.authorization import require_admin, get_current_user
-from backend.utils.authentication import hash_password, invalidate_user_sessions
+from backend.utils.authentication import hash_password, invalidate_session
 from backend.utils.audit import log_create, log_update, log_delete, log_deactivate, log_user_management, log_audit
 from backend.schemas.authentication import (
     AdminUserCreateRequest, AdminUserUpdateRequest, AdminUserResponse,
